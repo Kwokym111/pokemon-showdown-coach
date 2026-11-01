@@ -26,12 +26,27 @@ function readLinesIfExists(file) {
   }
 }
 
-// Returns { fresh }: true when this write started the room's file over.
-function writeLines(room, lines) {
+// The single place that turns a room id into a file path, so writing and reading a log
+// can never disagree about the name.
+function getLogPath(room) {
   // The room id comes from a remote server, so never trust it as a file name:
   // strip anything except letters, digits, "-" and "_" (blocks "../" tricks).
   const safe = room.replace(/[^A-Za-z0-9_-]/g, '_');
-  const file = path.join(logDir, `${safe}.log`);
+  return path.join(logDir, `${safe}.log`);
+}
+
+// Returns the room's whole log as text, or null if there is no file for it yet.
+function readLog(room) {
+  try {
+    return fs.readFileSync(getLogPath(room), 'utf8');
+  } catch {
+    return null;
+  }
+}
+
+// Returns { fresh }: true when this write started the room's file over.
+function writeLines(room, lines) {
+  const file = getLogPath(room);
 
   // Showdown replays the room's whole history every time the page joins it (reload,
   // rejoin), and every replay starts with |init|battle. So that line means "a fresh copy
@@ -50,4 +65,4 @@ function writeLines(room, lines) {
   return { fresh: false };
 }
 
-module.exports = { initLogs, getLogDir, writeLines };
+module.exports = { initLogs, getLogDir, getLogPath, readLog, writeLines };

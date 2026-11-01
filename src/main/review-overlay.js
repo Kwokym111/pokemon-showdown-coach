@@ -30,7 +30,6 @@ function initOverlay(win) {
   layoutOverlay();
 }
 
-
 function layoutOverlay() {
   if (!overlayView || !overlayWin || overlayWin.isDestroyed()) return;
   const { width, height } = overlayWin.getContentBounds();

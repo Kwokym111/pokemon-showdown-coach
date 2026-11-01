@@ -1,17 +1,19 @@
 <!doctype html>
 <html>
+<head>
+  <meta charset="utf-8">
+  <title>Review</title>
+  <!-- Same strict CSP as the panel: only our own script file may run (no inline scripts
+       or onclick attributes). Extra safety once this card shows names from the server. -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'unsafe-inline'">
+</head>
 <body style="margin:0;height:100vh;background:rgba(0,0,0,.6);display:flex;
              align-items:center;justify-content:center;font-family:sans-serif;color:#fff">
   <div style="background:#1e1e2e;padding:32px;border-radius:12px;width:480px">
     <h2>Game over</h2>
     <p id="status">Analyzing your game…</p>
-    <button onclick="review.close()">Close</button>
+    <button id="close">Close</button>
   </div>
-  <script>
-    review.onBattleLog(({ room, log }) => {
-      const turns = (log.match(/^\|turn\|/gm) || []).length;
-      document.getElementById('status').textContent = `${room}: ${turns} turns captured.`;
-    });
-  </script>
+  <script src="overlay.js"></script>
 </body>
 </html>

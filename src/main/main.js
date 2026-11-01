@@ -7,7 +7,8 @@
 const { app, BaseWindow, WebContentsView, Menu, shell } = require('electron');
 const path = require('path');
 const { attachBattleCapture } = require('./capture');
-const { initLogs, getLogDir, writeLines } = require('./logs');
+const { initLogs, getLogDir, readLog, writeLines } = require('./logs');
+const { initOverlay, layoutOverlay, showOverlay } = require('./review-overlay');
 
 const SHOWDOWN_URL = 'https://play.pokemonshowdown.com';
 const PANEL_WIDTH = 360;
@@ -18,16 +19,13 @@ let showdownView;
 let panelView;
 let panelVisible = true;
 let reloadingOnPurpose = false; // true only while our "Reload Showdown" menu item runs
+// Rooms whose end-of-game card was already triggered, so later frames of the same
+// battle (rating lines, |deinit|) don't pop it up a second time.
+const finishedRooms = new Set();
 
 // ---------------------------------------------------------------------------
 // Window + views (R1, R3)
 // ---------------------------------------------------------------------------
-
-const { initOverlay, layoutOverlay, showOverlay } = require('./review-overlay');
-
-const fs = require('fs');
-
-const finishedRooms = new Set();
 
 function createWindow() {
   // BaseWindow is just an empty frame. The content comes from the two views below.
@@ -85,16 +83,23 @@ function createWindow() {
   // Attach the debugger BEFORE loading the page so we cannot miss the WebSocket
   // being created.
   attachBattleCapture(showdownView.webContents, (room, lines) => {
-  const { fresh } = writeLines(room, lines);
-  if (fresh) sendResetToPanel(room);
-  sendToPanel(room, lines);
+    const { fresh } = writeLines(room, lines);
+    // A fresh log means a new battle or a replay of one, so the panel must drop what it
+    // is showing before the new lines arrive.
+    if (fresh) {
+      sendResetToPanel(room);
+      // Same idea for the card: joining the room again (e.g. re-watching a finished
+      // battle) replays its |win| line, and that should be allowed to show the card again.
+      finishedRooms.delete(room);
+    }
+    sendToPanel(room, lines);
 
-  if (!finishedRooms.has(room) && lines.some((l) => /^\|(win|tie)\b/.test(l))) {
-    finishedRooms.add(room);
-    console.log('[capture] game finished in', room);
-    setTimeout(() => showOverlayForRoom(room), 400);
-  }
-});
+    if (!finishedRooms.has(room) && lines.some((l) => /^\|(win|tie)\b/.test(l))) {
+      finishedRooms.add(room);
+      console.log('[capture] game finished in', room);
+      setTimeout(() => showOverlayForRoom(room), 400);
+    }
+  });
 
   showdownView.webContents.loadURL(SHOWDOWN_URL);
   panelView.webContents.loadFile(path.join(RENDERER_DIR, 'panel.html'));
@@ -154,15 +159,15 @@ function sendResetToPanel(room) {
   panelView.webContents.send('battle-reset', { room });
 }
 
+// Reads the finished battle's log and hands it to the end-of-game card.
 function showOverlayForRoom(room) {
-  const safe = room.replace(/[^A-Za-z0-9_-]/g, '_');
-  let text;
-  try {
-    text = fs.readFileSync(path.join(getLogDir(), `${safe}.log`), 'utf8');
-  } catch (e) {
-    console.error('[overlay] could not read log:', e.message);
+  const text = readLog(room);
+  if (text === null) {
+    console.error('[overlay] could not read log for', room);
     return;
   }
+  // |request| lines only reach the two players, so no |request| means we were only
+  // spectating this battle: there is nothing of ours to review.
   if (!text.includes('|request|')) {
     console.log('[overlay] no |request| in', room, '(spectated?), skipping');
     return;
