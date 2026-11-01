@@ -253,3 +253,17 @@ test('typechange is recorded and cleared when the Pokémon switches out', () => 
   // Aaa is no longer active, but its record must be clean if it comes back.
   assert.strictEqual(b.turns[2].end.p1.typeOverride, null);
 });
+
+test('-transform records the copied species, keeps the event, and clears when the copier leaves', () => {
+  const b = buildBattle([
+    ...HEADER, '|turn|1',
+    '|switch|p1a: Aaa|Pawmot, L80|100/100', '|switch|p2a: Bbb|Ditto, L80|100/100',
+    '|-transform|p2a: Bbb|p1a: Aaa|[from] ability: Imposter',
+    '|turn|2', '|switch|p2a: Ccc|Pikachu, L80|100/100',
+    '|turn|3', '|switch|p2a: Bbb|Ditto, L80|100/100',
+  ]);
+  assert.strictEqual(b.turns[1].end.p2.transformedInto, 'Pawmot');
+  assert.strictEqual(b.turns[1].end.p2.species, 'Ditto'); // still a Ditto, just wearing Pawmot's data
+  assert.ok(b.turns[1].events.some((e) => e.type === 'transform'));
+  assert.strictEqual(b.turns[3].end.p2.transformedInto, null);
+});

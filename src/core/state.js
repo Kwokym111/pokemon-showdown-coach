@@ -6,8 +6,9 @@
 // later read the finished structure; they never touch raw lines.
 //
 // Types are deliberately NOT computed here. A Pokémon's current type needs species data
-// (and Tera replaces it), which is task 4's job (data.js). We only record the inputs:
-// species, teraType/terastallized and typeOverride (moves that change type).
+// (and Tera replaces it), which is data.js's job (currentTypes). We only record the inputs:
+// species, teraType/terastallized, typeOverride (moves that change type) and
+// transformedInto (the species a Ditto/Transform user copied).
 
 const { parseLine, parseIdent, parseDetails, parseCondition, stripRank } = require('./parser');
 
@@ -66,7 +67,7 @@ function newMon(side, name) {
   return {
     side, name, species: name, level: 100, gender: null,
     hp: null, maxHp: null, hpPct: null, hpKind: null, status: null, fainted: false,
-    terastallized: false, teraType: null, typeOverride: null,
+    terastallized: false, teraType: null, typeOverride: null, transformedInto: null,
     revealedMoves: [], ability: null, item: null, lostItem: null,
     // Only filled for MY Pokémon, from |request| (my own private info):
     moveset: null, plannedTera: null,
@@ -133,7 +134,10 @@ function onSwitch(s, { cmd, args, kw }) {
   setCondition(s, mon, args[2]);
 
   const prev = s.active[mon.side];
-  if (prev && prev !== mon) prev.typeOverride = null; // type changes end when the Pokémon leaves
+  if (prev && prev !== mon) { // type changes and Transform both end when the Pokémon leaves
+    prev.typeOverride = null;
+    prev.transformedInto = null;
+  }
   s.active[mon.side] = mon;
   s.lastMove = null;
 
@@ -349,6 +353,15 @@ function onStart(s, { args }) {
   const mon = getMon(s, args[0]);
   if (mon && args[1] === 'typechange' && args[2]) mon.typeOverride = args[2].split('/');
 }
+// |-transform|p2a: Ditto|p1a: Pawmot|[from] ability: Imposter
+// The copier takes on the target's types, so remember who it copied. We still keep the
+// generic event (same shape as the fallback in buildBattle) so nothing is lost.
+function onTransform(s, { cmd, args, kw }) {
+  const mon = getMon(s, args[0]);
+  const target = getMon(s, args[1]);
+  if (mon && target) mon.transformedInto = target.species;
+  push(s, { type: cmd.slice(1), args, kw });
+}
 function onCant(s, { args }) {
   const mon = getMon(s, args[0]);
   if (mon) push(s, { type: 'cant', ...who(mon), reason: args[1] || null, move: args[2] || null });
@@ -371,6 +384,7 @@ const HANDLERS = {
   '-ability': onAbility, '-item': onItem, '-enditem': onEndItem,
   '-status': onStatus, '-curestatus': onStatus,
   '-start': onStart,
+  '-transform': onTransform,
   cant: onCant,
   gen: (s, { args }) => { s.battle.gen = Number(args[0]); },
   tier: (s, { args }) => { s.battle.format = args[0]; },

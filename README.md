@@ -32,7 +32,7 @@ Prints a turn-by-turn summary of a saved battle log (what the parser understood)
 ```
 src/
   main/        main.js (window, views, menu), capture.js (debugger + decodeFrame), logs.js
-  core/        pure JavaScript, no Electron: parser.js (lines), state.js (log -> per-turn battle). data/rules come later.
+  core/        pure JavaScript, no Electron: parser.js (lines), state.js (log -> per-turn battle), data.js (generation-aware types, type matchups, moves; every export is described at the top of the file). Rules come later.
 scripts/       summarize.js: print a readable summary of a saved log
   renderer/    panel.html, panel.js, panel-preload.js
 test/          *.test.js
