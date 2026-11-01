@@ -21,6 +21,8 @@ let logDir; // <userData>/battle-logs, set once the app is ready
 // Window + views (R1, R3)
 // ---------------------------------------------------------------------------
 
+const { initOverlay, layoutOverlay, showOverlay } = require('./review-overlay');
+
 function createWindow() {
   // BaseWindow is just an empty frame. The content comes from the two views below.
   win = new BaseWindow({ width: 1400, height: 900, minWidth: 700, minHeight: 400, title: 'Showdown Coach (spike)' });
@@ -50,6 +52,8 @@ function createWindow() {
 
   win.contentView.addChildView(showdownView);
   win.contentView.addChildView(panelView);
+
+  initOverlay(win);
 
   // Links that try to open a new window (target=_blank, popups) go to the user's real
   // browser instead. Only http(s) is allowed out; anything else is dropped.
@@ -88,6 +92,8 @@ function layoutViews() {
   showdownView.setBounds({ x: 0, y: 0, width: showdownWidth, height });
   panelView.setBounds({ x: showdownWidth, y: 0, width: panelWidth, height });
   panelView.setVisible(panelVisible);
+
+  layoutOverlay();
 }
 
 function togglePanel() {
@@ -142,9 +148,10 @@ function decodeFrame(payload) {
 function attachBattleCapture(webContents) {
   const seenSockets = new Set();
   const seenRooms = new Set();
+  const finishedRooms = new Set();
   let rawFramesLogged = 0;
 
-  // Network.enable is safe to send more than once. We send it now and again once the
+  // Network.enable is safe to send more than once  . We send it now and again once the
   // page's DOM exists, in case the first one is lost while the renderer is still starting.
   const enableNetwork = (when) => {
     if (!webContents.debugger.isAttached()) return;
@@ -203,7 +210,16 @@ function attachBattleCapture(webContents) {
         }
         writeLines(room, lines);
         sendToPanel(room, lines);
+
+        console.log('[capture] frame', room, lines.length, 'lines, last:', lines[lines.length - 1]);
+
+        if (!finishedRooms.has(room) && lines.some((l) => /^\|(win|tie)\b/.test(l))) {
+          finishedRooms.add(room);
+          console.log('[capture] game finished in', room);
+          setTimeout(() => showOverlayForRoom(room), 400);
+        }
       }
+
     } catch (err) {
       console.error('[capture] error handling a frame:', err);
     }
@@ -215,6 +231,23 @@ function writeLines(room, lines) {
   // strip anything except letters, digits, "-" and "_" (blocks "../" tricks).
   const safe = room.replace(/[^A-Za-z0-9_-]/g, '_');
   fs.appendFileSync(path.join(logDir, `${safe}.log`), lines.join('\n') + '\n');
+}
+
+function showOverlayForRoom(room) {
+  const safe = room.replace(/[^A-Za-z0-9_-]/g, '_');
+  let text;
+  try {
+    text = fs.readFileSync(path.join(logDir, `${safe}.log`), 'utf8');
+  } catch (e) {
+    console.error('[overlay] could not read log:', e.message);
+    return;
+  }
+  if (!text.includes('|request|')) {
+    console.log('[overlay] no |request| in', room, '(spectated?), skipping');
+    return;
+  }
+  console.log('[overlay] showing for', room);
+  showOverlay(room, text);
 }
 
 // One IPC message per line. panel-preload.js receives it and hands it to the page.
