@@ -169,3 +169,75 @@ test('a field option is passed through (Sun boosts Fire moves)', () => {
   const withSun = estimateDamage(9, mon('Koraidon', 64), mon('Gholdengo', 82), 'Flare Blitz', { field: sun });
   assert.ok(withSun.maxPct > none.maxPct * 1.3);
 });
+
+// --- boosts and field snapshots (what state.js tracks) ---
+
+const field = (extra = {}) => ({ weather: null, terrain: null, screens: { p1: [], p2: [] }, ...extra });
+
+test('mon.boosts are applied: +2 Atk doubles a physical hit, -1 lowers it, missing boosts change nothing', () => {
+  const zero = { atk: 0, def: 0, spa: 0, spd: 0, spe: 0, accuracy: 0, evasion: 0 };
+  const d = mon('Gholdengo', 82);
+  const plain = estimateDamage(9, mon('Garchomp', 80), d, 'Earthquake');
+  const same = estimateDamage(9, mon('Garchomp', 80, { boosts: zero }), d, 'Earthquake');
+  const plus2 = estimateDamage(9, mon('Garchomp', 80, { boosts: { ...zero, atk: 2 } }), d, 'Earthquake');
+  const minus1 = estimateDamage(9, mon('Garchomp', 80, { boosts: { ...zero, atk: -1 } }), d, 'Earthquake');
+  assert.strictEqual(same.maxPct, plain.maxPct);
+  assert.ok(Math.abs(plus2.maxPct / plain.maxPct - 2) < 0.05);
+  assert.ok(minus1.maxPct < plain.maxPct * 0.7);
+  // The DEFENDER's Def boost counts too.
+  const bulky = estimateDamage(9, mon('Garchomp', 80), mon('Gholdengo', 82, { boosts: { ...zero, def: 2 } }), 'Earthquake');
+  assert.ok(bulky.maxPct < plain.maxPct * 0.6);
+});
+
+test('a turn.field snapshot is translated: Sun boosts Fire (Flare Blitz 62-73.6% -> 124.9-147.2%)', () => {
+  const koraidon = mon('Koraidon', 64, { side: 'p1', item: 'choiceband', ability: 'orichalcumpulse' });
+  const gholdengo = mon('Gholdengo', 82, { side: 'p2' });
+  const none = estimateDamage(9, koraidon, gholdengo, 'Flare Blitz', { field: field() });
+  const sun = estimateDamage(9, koraidon, gholdengo, 'Flare Blitz', { field: field({ weather: 'SunnyDay' }) });
+  assert.deepStrictEqual([none.minPct, none.maxPct], [62, 73.6]);
+  assert.deepStrictEqual([sun.minPct, sun.maxPct], [124.9, 147.2]);
+  assert.match(sun.desc, /in Sun/);
+});
+
+test('a snapshot with no field effects equals passing no field at all', () => {
+  const a = mon('Garchomp', 80, { side: 'p1' });
+  const d = mon('Gholdengo', 82, { side: 'p2' });
+  assert.strictEqual(estimateDamage(9, a, d, 'Earthquake', { field: field() }).maxPct, estimateDamage(9, a, d, 'Earthquake').maxPct);
+});
+
+test('screens count only on the defender side and only for the matching category', () => {
+  const a = mon('Garchomp', 80, { side: 'p1' });
+  const d = mon('Gholdengo', 82, { side: 'p2' });
+  const plain = estimateDamage(9, a, d, 'Earthquake').maxPct;
+  const reflect = estimateDamage(9, a, d, 'Earthquake', { field: field({ screens: { p1: [], p2: ['Reflect'] } }) }).maxPct;
+  const ownSide = estimateDamage(9, a, d, 'Earthquake', { field: field({ screens: { p1: ['Reflect'], p2: [] } }) }).maxPct;
+  const lightScreen = estimateDamage(9, a, d, 'Earthquake', { field: field({ screens: { p1: [], p2: ['Light Screen'] } }) }).maxPct;
+  assert.ok(Math.abs(reflect / plain - 0.5) < 0.03, `reflect ratio ${reflect / plain}`);
+  assert.strictEqual(ownSide, plain); // the attacker's own Reflect does not protect the defender
+  assert.strictEqual(lightScreen, plain); // Light Screen does not touch a physical move
+  const aurora = estimateDamage(9, a, d, 'Earthquake', { field: field({ screens: { p1: [], p2: ['Aurora Veil'] } }) }).maxPct;
+  assert.ok(Math.abs(aurora / plain - 0.5) < 0.03);
+});
+
+test('terrain, and unknown weather / terrain ids are handled', () => {
+  const a = mon('Miraidon', 80, { side: 'p1' });
+  const d = mon('Gholdengo', 82, { side: 'p2' });
+  const plain = estimateDamage(9, a, d, 'Thunderbolt').maxPct;
+  const terrain = estimateDamage(9, a, d, 'Thunderbolt', { field: field({ terrain: 'Electric Terrain' }) }).maxPct;
+  assert.ok(terrain > plain * 1.2);
+  // Gholdengo is immune to nothing here, but unknown ids must simply be ignored.
+  const odd = estimateDamage(9, a, d, 'Thunderbolt', { field: field({ weather: 'Weird', terrain: 'Weird Terrain' }) }).maxPct;
+  assert.strictEqual(odd, plain);
+});
+
+test('state.js output feeds straight in: Koraidon in the real Sun turns of the Torkoal log', () => {
+  const fsx = require('fs');
+  const { buildBattle } = require('../src/core/state');
+  const b = buildBattle(fsx.readFileSync(path.join(DIR, 'battle-gen9randombattle-2707578345.log'), 'utf8').split('\n'));
+  const t = b.turns[14];
+  assert.strictEqual(t.field.weather, 'SunnyDay');
+  const [p1, p2] = [t.start.p1, t.start.p2];
+  const withSun = estimateDamage(9, p1, p2, 'Flamethrower', { field: t.field });
+  const without = estimateDamage(9, p1, p2, 'Flamethrower');
+  assert.ok(withSun.maxPct > without.maxPct * 1.4);
+});

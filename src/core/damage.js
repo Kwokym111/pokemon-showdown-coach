@@ -20,19 +20,21 @@
 //    (the opponent's set is hidden, so for them the plain spread is used):
 //      * 0 Atk IV AND 0 Atk EVs when the set has no Physical move (Body Press and Foul Play
 //        do not count, Shell Side Arm does, Transform/Copycat sets keep 84/31). It only
-//        changes damage that uses the
-//        Pokémon's Atk. For the opponent this means Foul Play and confusion damage can be
-//        too high when their set was all-special.
+//        changes damage that uses the Pokémon's Atk. For the opponent this means Foul Play
+//        and confusion damage can be too high when their set was all-special.
 //      * Random Battle sometimes takes 4 EVs off HP (to make the HP number odd/even or
 //        divisible in a useful way). Instead of copying that logic, the HP EVs are found by
 //        matching the real max HP from |request|. Opponent max HP can be 1 off.
 //  - An UNKNOWN item or ability counts as NONE. The opponent's are null until the log
-//    reveals them. Ids from |request| ("choiceband") are turned into display names. The calc would otherwise quietly give a Pokémon its species' first
-//    ability, so "No Ability" is passed on purpose.
-//  - NO weather, terrain, stat boosts, screens or other field effects (state.js does not
-//    track them yet). They change results a lot: Flare Blitz is 62-74% without Sun and
-//    125-147% in Sun. Pass `options.field` (a @smogon/calc Field, or the plain-object form
-//    it accepts) to model them later.
+//    reveals them. Ids from |request| ("choiceband") are turned into display names. The
+//    calc would otherwise quietly give a Pokémon its species' first ability, so "No Ability"
+//    is passed on purpose.
+//  - STAT BOOSTS come from `mon.boosts` (state.js tracks them). WEATHER, TERRAIN and
+//    SCREENS (Reflect, Light Screen, Aurora Veil) are used only when the caller passes
+//    `options.field`: either a turn's `field` snapshot from buildBattle (turn.field) or a
+//    @smogon/calc Field. Without it the field is empty. They matter a lot: Flare Blitz is
+//    62-74% without Sun and 125-147% in Sun. Not modelled: Gravity, Trick Room, Magic and
+//    Wonder Room, Baton Pass boosts, abilities that need a trigger the log did not show.
 //  - NO critical hits. ONE use of the move (the calc's normal damage range, 16 rolls).
 //  - Status moves have no damage and return null.
 //  - Only Terastallized Pokémon get a Tera type, because in the calc `teraType` means "is
@@ -55,6 +57,15 @@
 //    null when there is nothing to estimate: missing Pokémon, unknown species or move, a
 //    status move, a fainted defender. Never throws because of battle data. A bad `gen`
 //    throws a RangeError, the same as data.js.
+//
+//  calcField(snapshot, attackerSide, defenderSide)
+//    -> a @smogon/calc Field built from a buildBattle field snapshot ({ weather, terrain,
+//    screens }, e.g. turn.field). Screens count only on the DEFENDER's side. Unknown
+//    weather or terrain ids are ignored. estimateDamage does this for you when you pass the
+//    snapshot as `options.field`.
+//
+//  calcPokemon(gen, mon)
+//    -> a @smogon/calc Pokemon (or null). Exported for tests and scripts.
 
 const { Dex } = require('@pkmn/dex');
 const { Generations } = require('@pkmn/data');
@@ -127,6 +138,11 @@ function calcPokemon(gen, mon) {
   if (item) options.item = item;
   // `teraType` in the calc means "is Terastallized". Stellar is not a real type for it.
   if (mon.terastallized && mon.teraType && mon.teraType !== 'Stellar') options.teraType = mon.teraType;
+  if (mon.boosts) {
+    const { atk, def, spa, spd, spe } = mon.boosts;
+    options.boosts = { atk, def, spa, spd, spe };
+    if (gen === 1) options.boosts.spc = spa; // Gen 1 has a single Special stat
+  }
 
   try {
     // A REAL max HP (not the 100 of a percentage) is known for my own Pokémon: use it to find
@@ -152,6 +168,29 @@ function setHpFromPct(cp, hpPct) {
   cp.originalCurHP = Math.min(cur, cp.maxHP());
 }
 
+// Showdown's weather and terrain ids -> the calc's names.
+const WEATHER = {
+  SunnyDay: 'Sun', RainDance: 'Rain', Sandstorm: 'Sand', Hail: 'Hail', Snow: 'Snow',
+  DesolateLand: 'Harsh Sunshine', PrimordialSea: 'Heavy Rain', DeltaStream: 'Strong Winds',
+};
+const TERRAIN = {
+  'Electric Terrain': 'Electric', 'Grassy Terrain': 'Grassy', 'Misty Terrain': 'Misty', 'Psychic Terrain': 'Psychic',
+};
+
+function calcField(snapshot, attackerSide, defenderSide) {
+  if (!snapshot) return new calc.Field();
+  const field = {};
+  if (WEATHER[snapshot.weather]) field.weather = WEATHER[snapshot.weather];
+  if (TERRAIN[snapshot.terrain]) field.terrain = TERRAIN[snapshot.terrain];
+  const screens = (snapshot.screens && snapshot.screens[defenderSide]) || [];
+  field.defenderSide = {
+    isReflect: screens.includes('Reflect'),
+    isLightScreen: screens.includes('Light Screen'),
+    isAuroraVeil: screens.includes('Aurora Veil'),
+  };
+  return new calc.Field(field);
+}
+
 function estimateDamage(gen, attacker, defender, moveName, options = {}) {
   const g = genData(gen);
   if (!attacker || !defender) return null;
@@ -167,7 +206,10 @@ function estimateDamage(gen, attacker, defender, moveName, options = {}) {
     setHpFromPct(d, defender.hpPct);
 
     const move = new calc.Move(g, mv.name);
-    const result = calc.calculate(g, a, d, move, options.field || new calc.Field());
+    // A turn.field snapshot has `screens`; anything else is passed to the calc as it is.
+    const f = options.field;
+    const field = f && f.screens ? calcField(f, attacker.side, defender.side) : f || new calc.Field();
+    const result = calc.calculate(g, a, d, move, field);
     const [min, max] = result.range();
     const maxHp = d.maxHP();
     const curHp = d.curHP();
@@ -189,4 +231,4 @@ function estimateDamage(gen, attacker, defender, moveName, options = {}) {
   }
 }
 
-module.exports = { estimateDamage, calcPokemon };
+module.exports = { estimateDamage, calcPokemon, calcField };
