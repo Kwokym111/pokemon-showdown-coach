@@ -1,0 +1,9 @@
+{
+  "version": 1,
+  "room": "battle-gen9randombattle-0000000002",
+  "players": { "me": "cool213", "opponent": "anonOpponent" },
+  "result": { "won": true, "forfeit": true, "lastTurn": 4 },
+  "aiUsed": false,
+  "summary": null,
+  "moments": []
+}
