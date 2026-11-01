@@ -19,14 +19,21 @@ Electron 45 downloads its program (~100+ MB) the first time it runs, not during 
 npm test
 ```
 
-Runs Node's built-in test runner on `test/*.test.js` (no tests yet).
+Runs Node's built-in test runner on `test/*.test.js`.
+
+```bash
+npm run summarize -- test-data/battle-gen9randombattle-2707357132.log
+```
+
+Prints a turn-by-turn summary of a saved battle log (what the parser understood), handy for checking it against what you remember.
 
 ## Project layout
 
 ```
 src/
   main/        main.js (window, views, menu), capture.js (debugger + decodeFrame), logs.js
-  core/        pure JavaScript: parser, state, data, rules (no Electron). Empty for now.
+  core/        pure JavaScript, no Electron: parser.js (lines), state.js (log -> per-turn battle). data/rules come later.
+scripts/       summarize.js: print a readable summary of a saved log
   renderer/    panel.html, panel.js, panel-preload.js
 test/          *.test.js
 test-data/     real battle logs from our own accounts (opponent names anonymised)
