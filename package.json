@@ -11,5 +11,9 @@
   },
   "devDependencies": {
     "electron": "^45.2.1"
+  },
+  "dependencies": {
+    "@pkmn/data": "^0.10.12",
+    "@pkmn/dex": "^0.10.12"
   }
 }
