@@ -25,6 +25,10 @@ let reloadingOnPurpose = false; // true only while our "Reload Showdown" menu it
 
 const { initOverlay, layoutOverlay, showOverlay } = require('./review-overlay');
 
+const fs = require('fs');
+
+const finishedRooms = new Set();
+
 function createWindow() {
   // BaseWindow is just an empty frame. The content comes from the two views below.
   win = new BaseWindow({ width: 1400, height: 900, minWidth: 700, minHeight: 400, title: 'Showdown Coach' });
@@ -81,12 +85,16 @@ function createWindow() {
   // Attach the debugger BEFORE loading the page so we cannot miss the WebSocket
   // being created.
   attachBattleCapture(showdownView.webContents, (room, lines) => {
-    const { fresh } = writeLines(room, lines);
-    // A fresh log means a new battle or a replay of one, so the panel must drop what it
-    // is showing before the new lines arrive.
-    if (fresh) sendResetToPanel(room);
-    sendToPanel(room, lines);
-  });
+  const { fresh } = writeLines(room, lines);
+  if (fresh) sendResetToPanel(room);
+  sendToPanel(room, lines);
+
+  if (!finishedRooms.has(room) && lines.some((l) => /^\|(win|tie)\b/.test(l))) {
+    finishedRooms.add(room);
+    console.log('[capture] game finished in', room);
+    setTimeout(() => showOverlayForRoom(room), 400);
+  }
+});
 
   showdownView.webContents.loadURL(SHOWDOWN_URL);
   panelView.webContents.loadFile(path.join(RENDERER_DIR, 'panel.html'));
@@ -150,7 +158,7 @@ function showOverlayForRoom(room) {
   const safe = room.replace(/[^A-Za-z0-9_-]/g, '_');
   let text;
   try {
-    text = fs.readFileSync(path.join(logDir, `${safe}.log`), 'utf8');
+    text = fs.readFileSync(path.join(getLogDir(), `${safe}.log`), 'utf8');
   } catch (e) {
     console.error('[overlay] could not read log:', e.message);
     return;
