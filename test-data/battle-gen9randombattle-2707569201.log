@@ -1,0 +1,84 @@
+|init|battle
+|title|anon Opponent vs. cool213
+|j|☆anon Opponent
+|j|☆cool213
+|t:|1793516790
+|gametype|singles
+|player|p1|anon Opponent|steven|1096
+|player|p2|cool213|101|1057
+|gen|9
+|tier|[Gen 9] Random Battle
+|rated|
+|rule|Species Clause: Limit one of each Pokemon
+|rule|HP Percentage Mod: HP is shown in percentages
+|rule|Sleep Clause Mod: Limit one foe put to sleep
+|rule|Illusion Level Mod: Illusion disguises the Pokemon's true level
+|
+|t:|1793516790
+|teamsize|p1|6
+|teamsize|p2|6
+|start
+|switch|p1a: Tornadus|Tornadus-Therian, L79, M|100/100
+|switch|p2a: Koraidon|Koraidon, L64|235/235
+|-weather|SunnyDay|[from] ability: Orichalcum Pulse|[of] p2a: Koraidon
+|-activate|p2a: Koraidon|Orichalcum Pulse|[source]
+|turn|1
+|request|{"active":[{"moves":[{"move":"Close Combat","id":"closecombat","pp":8,"maxpp":8,"target":"normal","disabled":false},{"move":"Flare Blitz","id":"flareblitz","pp":24,"maxpp":24,"target":"normal","disabled":false},{"move":"U-turn","id":"uturn","pp":32,"maxpp":32,"target":"normal","disabled":false},{"move":"Outrage","id":"outrage","pp":16,"maxpp":16,"target":"randomNormal","disabled":false}],"canTerastallize":"Fire"}],"side":{"name":"cool213","id":"p2","pokemon":[{"ident":"p2: Koraidon","details":"Koraidon, L64","condition":"235/235","active":true,"stats":{"atk":211,"def":185,"spa":147,"spd":166,"spe":211},"moves":["closecombat","flareblitz","uturn","outrage"],"baseAbility":"orichalcumpulse","item":"choiceband","pokeball":"pokeball","ability":"orichalcumpulse","commanding":false,"reviving":false,"teraType":"Fire","terastallized":""},{"ident":"p2: Leafeon","details":"Leafeon, L88, F","condition":"258/258","active":false,"stats":{"atk":244,"def":279,"spa":156,"spd":165,"spe":217},"moves":["synthesis","swordsdance","doubleedge","leafblade"],"baseAbility":"chlorophyll","item":"lifeorb","pokeball":"pokeball","ability":"chlorophyll","commanding":false,"reviving":false,"teraType":"Normal","terastallized":""},{"ident":"p2: Honchkrow","details":"Honchkrow, L86, F","condition":"312/312","active":false,"stats":{"atk":264,"def":139,"spa":230,"spd":139,"spe":171},"moves":["uturn","suckerpunch","heatwave","bravebird"],"baseAbility":"moxie","item":"heavydutyboots","pokeball":"pokeball","ability":"moxie","commanding":false,"reviving":false,"teraType":"Flying","terastallized":""},{"ident":"p2: Slowbro","details":"Slowbro-Galar, L87, M","condition":"307/307","active":false,"stats":{"atk":224,"def":215,"spa":224,"spd":172,"spe":102},"moves":["shellsidearm","psychic","haze","slackoff"],"baseAbility":"regenerator","item":"rockyhelmet","pokeball":"pokeball","ability":"regenerator","commanding":false,"reviving":false,"teraType":"Dark","terastallized":""},{"ident":"p2: Heatran","details":"Heatran, L79, F","condition":"273/273","active":false,"stats":{"atk":188,"def":213,"spa":251,"spd":213,"spe":167},"moves":["stealthrock","lavaplume","earthpower","heavyslam"],"baseAbility":"flashfire","item":"airballoon","pokeball":"pokeball","ability":"flashfire","commanding":false,"reviving":false,"teraType":"Grass","terastallized":""},{"ident":"p2: Dunsparce","details":"Dunsparce, L86, M","condition":"312/312","active":false,"stats":{"atk":170,"def":170,"spa":161,"spd":161,"spe":127},"moves":["coil","earthquake","roost","bodyslam"],"baseAbility":"serenegrace","item":"eviolite","pokeball":"pokeball","ability":"serenegrace","commanding":false,"reviving":false,"teraType":"Ground","terastallized":""}]},"rqid":3}
+|inactive|Battle timer is ON: inactive players will automatically lose when time's up. (requested by anon Opponent)
+|inactive|Time left: 150 sec this turn | 150 sec total | 60 sec grace
+|inactive|cool213 has 120 seconds left.
+|
+|t:|1793516836
+|switch|p2a: Dunsparce|Dunsparce, L86, M|312/312
+|move|p1a: Tornadus|Bleakwind Storm|p2a: Dunsparce
+|-damage|p2a: Dunsparce|222/312
+|
+|-weather|SunnyDay|[upkeep]
+|upkeep
+|turn|2
+|request|{"active":[{"moves":[{"move":"Coil","id":"coil","pp":32,"maxpp":32,"target":"self","disabled":false},{"move":"Earthquake","id":"earthquake","pp":16,"maxpp":16,"target":"allAdjacent","disabled":false},{"move":"Roost","id":"roost","pp":8,"maxpp":8,"target":"self","disabled":false},{"move":"Body Slam","id":"bodyslam","pp":24,"maxpp":24,"target":"normal","disabled":false}],"canTerastallize":"Ground"}],"side":{"name":"cool213","id":"p2","pokemon":[{"ident":"p2: Dunsparce","details":"Dunsparce, L86, M","condition":"222/312","active":true,"stats":{"atk":170,"def":170,"spa":161,"spd":161,"spe":127},"moves":["coil","earthquake","roost","bodyslam"],"baseAbility":"serenegrace","item":"eviolite","pokeball":"pokeball","ability":"serenegrace","commanding":false,"reviving":false,"teraType":"Ground","terastallized":""},{"ident":"p2: Leafeon","details":"Leafeon, L88, F","condition":"258/258","active":false,"stats":{"atk":244,"def":279,"spa":156,"spd":165,"spe":217},"moves":["synthesis","swordsdance","doubleedge","leafblade"],"baseAbility":"chlorophyll","item":"lifeorb","pokeball":"pokeball","ability":"chlorophyll","commanding":false,"reviving":false,"teraType":"Normal","terastallized":""},{"ident":"p2: Honchkrow","details":"Honchkrow, L86, F","condition":"312/312","active":false,"stats":{"atk":264,"def":139,"spa":230,"spd":139,"spe":171},"moves":["uturn","suckerpunch","heatwave","bravebird"],"baseAbility":"moxie","item":"heavydutyboots","pokeball":"pokeball","ability":"moxie","commanding":false,"reviving":false,"teraType":"Flying","terastallized":""},{"ident":"p2: Slowbro","details":"Slowbro-Galar, L87, M","condition":"307/307","active":false,"stats":{"atk":224,"def":215,"spa":224,"spd":172,"spe":102},"moves":["shellsidearm","psychic","haze","slackoff"],"baseAbility":"regenerator","item":"rockyhelmet","pokeball":"pokeball","ability":"regenerator","commanding":false,"reviving":false,"teraType":"Dark","terastallized":""},{"ident":"p2: Heatran","details":"Heatran, L79, F","condition":"273/273","active":false,"stats":{"atk":188,"def":213,"spa":251,"spd":213,"spe":167},"moves":["stealthrock","lavaplume","earthpower","heavyslam"],"baseAbility":"flashfire","item":"airballoon","pokeball":"pokeball","ability":"flashfire","commanding":false,"reviving":false,"teraType":"Grass","terastallized":""},{"ident":"p2: Koraidon","details":"Koraidon, L64","condition":"235/235","active":false,"stats":{"atk":211,"def":185,"spa":147,"spd":166,"spe":211},"moves":["closecombat","flareblitz","uturn","outrage"],"baseAbility":"orichalcumpulse","item":"choiceband","pokeball":"pokeball","ability":"orichalcumpulse","commanding":false,"reviving":false,"teraType":"Fire","terastallized":""}]},"rqid":5}
+|inactive|Time left: 150 sec this turn | 150 sec total
+|
+|t:|1793516853
+|move|p1a: Tornadus|Knock Off|p2a: Dunsparce
+|-damage|p2a: Dunsparce|174/312
+|-enditem|p2a: Dunsparce|Eviolite|[from] move: Knock Off|[of] p1a: Tornadus
+|move|p2a: Dunsparce|Body Slam|p1a: Tornadus
+|-damage|p1a: Tornadus|68/100
+|-status|p1a: Tornadus|par
+|
+|-weather|SunnyDay|[upkeep]
+|upkeep
+|turn|3
+|request|{"active":[{"moves":[{"move":"Coil","id":"coil","pp":32,"maxpp":32,"target":"self","disabled":false},{"move":"Earthquake","id":"earthquake","pp":16,"maxpp":16,"target":"allAdjacent","disabled":false},{"move":"Roost","id":"roost","pp":8,"maxpp":8,"target":"self","disabled":false},{"move":"Body Slam","id":"bodyslam","pp":23,"maxpp":24,"target":"normal","disabled":false}],"canTerastallize":"Ground"}],"side":{"name":"cool213","id":"p2","pokemon":[{"ident":"p2: Dunsparce","details":"Dunsparce, L86, M","condition":"174/312","active":true,"stats":{"atk":170,"def":170,"spa":161,"spd":161,"spe":127},"moves":["coil","earthquake","roost","bodyslam"],"baseAbility":"serenegrace","item":"","pokeball":"pokeball","ability":"serenegrace","commanding":false,"reviving":false,"teraType":"Ground","terastallized":""},{"ident":"p2: Leafeon","details":"Leafeon, L88, F","condition":"258/258","active":false,"stats":{"atk":244,"def":279,"spa":156,"spd":165,"spe":217},"moves":["synthesis","swordsdance","doubleedge","leafblade"],"baseAbility":"chlorophyll","item":"lifeorb","pokeball":"pokeball","ability":"chlorophyll","commanding":false,"reviving":false,"teraType":"Normal","terastallized":""},{"ident":"p2: Honchkrow","details":"Honchkrow, L86, F","condition":"312/312","active":false,"stats":{"atk":264,"def":139,"spa":230,"spd":139,"spe":171},"moves":["uturn","suckerpunch","heatwave","bravebird"],"baseAbility":"moxie","item":"heavydutyboots","pokeball":"pokeball","ability":"moxie","commanding":false,"reviving":false,"teraType":"Flying","terastallized":""},{"ident":"p2: Slowbro","details":"Slowbro-Galar, L87, M","condition":"307/307","active":false,"stats":{"atk":224,"def":215,"spa":224,"spd":172,"spe":102},"moves":["shellsidearm","psychic","haze","slackoff"],"baseAbility":"regenerator","item":"rockyhelmet","pokeball":"pokeball","ability":"regenerator","commanding":false,"reviving":false,"teraType":"Dark","terastallized":""},{"ident":"p2: Heatran","details":"Heatran, L79, F","condition":"273/273","active":false,"stats":{"atk":188,"def":213,"spa":251,"spd":213,"spe":167},"moves":["stealthrock","lavaplume","earthpower","heavyslam"],"baseAbility":"flashfire","item":"airballoon","pokeball":"pokeball","ability":"flashfire","commanding":false,"reviving":false,"teraType":"Grass","terastallized":""},{"ident":"p2: Koraidon","details":"Koraidon, L64","condition":"235/235","active":false,"stats":{"atk":211,"def":185,"spa":147,"spd":166,"spe":211},"moves":["closecombat","flareblitz","uturn","outrage"],"baseAbility":"orichalcumpulse","item":"choiceband","pokeball":"pokeball","ability":"orichalcumpulse","commanding":false,"reviving":false,"teraType":"Fire","terastallized":""}]},"rqid":7}
+|inactive|Time left: 145 sec this turn | 145 sec total
+|
+|t:|1793516868
+|switch|p2a: Leafeon|Leafeon, L88, F|258/258
+|switch|p1a: Mismagius|Mismagius, L86, F|100/100
+|
+|-weather|SunnyDay|[upkeep]
+|upkeep
+|turn|4
+|request|{"active":[{"moves":[{"move":"Synthesis","id":"synthesis","pp":8,"maxpp":8,"target":"self","disabled":false},{"move":"Swords Dance","id":"swordsdance","pp":32,"maxpp":32,"target":"self","disabled":false},{"move":"Double-Edge","id":"doubleedge","pp":24,"maxpp":24,"target":"normal","disabled":false},{"move":"Leaf Blade","id":"leafblade","pp":24,"maxpp":24,"target":"normal","disabled":false}],"canTerastallize":"Normal"}],"side":{"name":"cool213","id":"p2","pokemon":[{"ident":"p2: Leafeon","details":"Leafeon, L88, F","condition":"258/258","active":true,"stats":{"atk":244,"def":279,"spa":156,"spd":165,"spe":217},"moves":["synthesis","swordsdance","doubleedge","leafblade"],"baseAbility":"chlorophyll","item":"lifeorb","pokeball":"pokeball","ability":"chlorophyll","commanding":false,"reviving":false,"teraType":"Normal","terastallized":""},{"ident":"p2: Dunsparce","details":"Dunsparce, L86, M","condition":"174/312","active":false,"stats":{"atk":170,"def":170,"spa":161,"spd":161,"spe":127},"moves":["coil","earthquake","roost","bodyslam"],"baseAbility":"serenegrace","item":"","pokeball":"pokeball","ability":"serenegrace","commanding":false,"reviving":false,"teraType":"Ground","terastallized":""},{"ident":"p2: Honchkrow","details":"Honchkrow, L86, F","condition":"312/312","active":false,"stats":{"atk":264,"def":139,"spa":230,"spd":139,"spe":171},"moves":["uturn","suckerpunch","heatwave","bravebird"],"baseAbility":"moxie","item":"heavydutyboots","pokeball":"pokeball","ability":"moxie","commanding":false,"reviving":false,"teraType":"Flying","terastallized":""},{"ident":"p2: Slowbro","details":"Slowbro-Galar, L87, M","condition":"307/307","active":false,"stats":{"atk":224,"def":215,"spa":224,"spd":172,"spe":102},"moves":["shellsidearm","psychic","haze","slackoff"],"baseAbility":"regenerator","item":"rockyhelmet","pokeball":"pokeball","ability":"regenerator","commanding":false,"reviving":false,"teraType":"Dark","terastallized":""},{"ident":"p2: Heatran","details":"Heatran, L79, F","condition":"273/273","active":false,"stats":{"atk":188,"def":213,"spa":251,"spd":213,"spe":167},"moves":["stealthrock","lavaplume","earthpower","heavyslam"],"baseAbility":"flashfire","item":"airballoon","pokeball":"pokeball","ability":"flashfire","commanding":false,"reviving":false,"teraType":"Grass","terastallized":""},{"ident":"p2: Koraidon","details":"Koraidon, L64","condition":"235/235","active":false,"stats":{"atk":211,"def":185,"spa":147,"spd":166,"spe":211},"moves":["closecombat","flareblitz","uturn","outrage"],"baseAbility":"orichalcumpulse","item":"choiceband","pokeball":"pokeball","ability":"orichalcumpulse","commanding":false,"reviving":false,"teraType":"Fire","terastallized":""}]},"rqid":9}
+|inactive|Time left: 140 sec this turn | 140 sec total
+|
+|t:|1793516876
+|move|p2a: Leafeon|Synthesis|p2a: Leafeon
+|-fail|p2a: Leafeon|heal
+|move|p1a: Mismagius|Substitute|p1a: Mismagius
+|-start|p1a: Mismagius|Substitute
+|-damage|p1a: Mismagius|76/100
+|
+|-weather|SunnyDay|[upkeep]
+|-heal|p1a: Mismagius|82/100|[from] item: Leftovers
+|upkeep
+|turn|5
+|request|{"active":[{"moves":[{"move":"Synthesis","id":"synthesis","pp":7,"maxpp":8,"target":"self","disabled":false},{"move":"Swords Dance","id":"swordsdance","pp":32,"maxpp":32,"target":"self","disabled":false},{"move":"Double-Edge","id":"doubleedge","pp":24,"maxpp":24,"target":"normal","disabled":false},{"move":"Leaf Blade","id":"leafblade","pp":24,"maxpp":24,"target":"normal","disabled":false}],"canTerastallize":"Normal"}],"side":{"name":"cool213","id":"p2","pokemon":[{"ident":"p2: Leafeon","details":"Leafeon, L88, F","condition":"258/258","active":true,"stats":{"atk":244,"def":279,"spa":156,"spd":165,"spe":217},"moves":["synthesis","swordsdance","doubleedge","leafblade"],"baseAbility":"chlorophyll","item":"lifeorb","pokeball":"pokeball","ability":"chlorophyll","commanding":false,"reviving":false,"teraType":"Normal","terastallized":""},{"ident":"p2: Dunsparce","details":"Dunsparce, L86, M","condition":"174/312","active":false,"stats":{"atk":170,"def":170,"spa":161,"spd":161,"spe":127},"moves":["coil","earthquake","roost","bodyslam"],"baseAbility":"serenegrace","item":"","pokeball":"pokeball","ability":"serenegrace","commanding":false,"reviving":false,"teraType":"Ground","terastallized":""},{"ident":"p2: Honchkrow","details":"Honchkrow, L86, F","condition":"312/312","active":false,"stats":{"atk":264,"def":139,"spa":230,"spd":139,"spe":171},"moves":["uturn","suckerpunch","heatwave","bravebird"],"baseAbility":"moxie","item":"heavydutyboots","pokeball":"pokeball","ability":"moxie","commanding":false,"reviving":false,"teraType":"Flying","terastallized":""},{"ident":"p2: Slowbro","details":"Slowbro-Galar, L87, M","condition":"307/307","active":false,"stats":{"atk":224,"def":215,"spa":224,"spd":172,"spe":102},"moves":["shellsidearm","psychic","haze","slackoff"],"baseAbility":"regenerator","item":"rockyhelmet","pokeball":"pokeball","ability":"regenerator","commanding":false,"reviving":false,"teraType":"Dark","terastallized":""},{"ident":"p2: Heatran","details":"Heatran, L79, F","condition":"273/273","active":false,"stats":{"atk":188,"def":213,"spa":251,"spd":213,"spe":167},"moves":["stealthrock","lavaplume","earthpower","heavyslam"],"baseAbility":"flashfire","item":"airballoon","pokeball":"pokeball","ability":"flashfire","commanding":false,"reviving":false,"teraType":"Grass","terastallized":""},{"ident":"p2: Koraidon","details":"Koraidon, L64","condition":"235/235","active":false,"stats":{"atk":211,"def":185,"spa":147,"spd":166,"spe":211},"moves":["closecombat","flareblitz","uturn","outrage"],"baseAbility":"orichalcumpulse","item":"choiceband","pokeball":"pokeball","ability":"orichalcumpulse","commanding":false,"reviving":false,"teraType":"Fire","terastallized":""}]},"rqid":11}
+|inactive|Time left: 145 sec this turn | 145 sec total
+|-message|cool213 forfeited.
+|
+|win|anon Opponent
+|raw|anon Opponent's rating: 1096 &rarr; <strong>1119</strong><br />(+23 for winning)
+|raw|cool213's rating: 1057 &rarr; <strong>1041</strong><br />(-16 for losing)
+|deinit
