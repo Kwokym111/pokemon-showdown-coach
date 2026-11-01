@@ -1,0 +1,24 @@
+# Dependencies
+node_modules/
+
+# Claude Code local settings (machine-specific)
+.claude/
+CLAUDE.md
+
+# Secrets: API keys live here. Commit .env.example instead.
+.env
+.env.*
+!.env.example
+logins.txt
+
+# Build / packaging output (if we ever package the app)
+out/
+dist/
+
+# npm debug logs
+npm-debug.log*
+
+# OS clutter
+.DS_Store
+Thumbs.db
+desktop.ini

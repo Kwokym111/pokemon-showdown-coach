@@ -1,0 +1,13 @@
+{
+  "name": "pokemon-helper-electron-spike",
+  "version": "0.0.1",
+  "description": "Throwaway spike: is Electron viable for a Pokemon Showdown post-game coach?",
+  "main": "main.js",
+  "private": true,
+  "scripts": {
+    "start": "electron ."
+  },
+  "devDependencies": {
+    "electron": "^45.2.1"
+  }
+}
