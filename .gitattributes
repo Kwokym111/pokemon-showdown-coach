@@ -1,0 +1,10 @@
+# Line endings: store and check out every text file with LF, on Windows too.
+# Without this, each person's git settings decide, and files flip between CRLF and LF,
+# which shows up as "every line changed" diffs and breaks tests that read test-data logs.
+* text=auto eol=lf
+
+# Never touch line endings in binary files.
+*.png binary
+*.jpg binary
+*.ico binary
+*.zip binary
