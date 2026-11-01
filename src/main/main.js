@@ -23,6 +23,8 @@ let reloadingOnPurpose = false; // true only while our "Reload Showdown" menu it
 // Window + views (R1, R3)
 // ---------------------------------------------------------------------------
 
+const { initOverlay, layoutOverlay, showOverlay } = require('./review-overlay');
+
 function createWindow() {
   // BaseWindow is just an empty frame. The content comes from the two views below.
   win = new BaseWindow({ width: 1400, height: 900, minWidth: 700, minHeight: 400, title: 'Showdown Coach' });
@@ -52,6 +54,8 @@ function createWindow() {
 
   win.contentView.addChildView(showdownView);
   win.contentView.addChildView(panelView);
+
+  initOverlay(win);
 
   // Links that try to open a new window (target=_blank, popups) go to the user's real
   // browser instead. Only http(s) is allowed out; anything else is dropped.
@@ -106,6 +110,8 @@ function layoutViews() {
   showdownView.setBounds({ x: 0, y: 0, width: showdownWidth, height });
   panelView.setBounds({ x: showdownWidth, y: 0, width: panelWidth, height });
   panelView.setVisible(panelVisible);
+
+  layoutOverlay();
 }
 
 function togglePanel() {
@@ -138,6 +144,23 @@ function logLoadProblems(webContents, name) {
 function sendResetToPanel(room) {
   if (!panelView || panelView.webContents.isDestroyed()) return;
   panelView.webContents.send('battle-reset', { room });
+}
+
+function showOverlayForRoom(room) {
+  const safe = room.replace(/[^A-Za-z0-9_-]/g, '_');
+  let text;
+  try {
+    text = fs.readFileSync(path.join(logDir, `${safe}.log`), 'utf8');
+  } catch (e) {
+    console.error('[overlay] could not read log:', e.message);
+    return;
+  }
+  if (!text.includes('|request|')) {
+    console.log('[overlay] no |request| in', room, '(spectated?), skipping');
+    return;
+  }
+  console.log('[overlay] showing for', room);
+  showOverlay(room, text);
 }
 
 // One IPC message per line. panel-preload.js receives it and hands it to the page.

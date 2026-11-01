@@ -1,0 +1,17 @@
+<!doctype html>
+<html>
+<body style="margin:0;height:100vh;background:rgba(0,0,0,.6);display:flex;
+             align-items:center;justify-content:center;font-family:sans-serif;color:#fff">
+  <div style="background:#1e1e2e;padding:32px;border-radius:12px;width:480px">
+    <h2>Game over</h2>
+    <p id="status">Analyzing your game…</p>
+    <button onclick="review.close()">Close</button>
+  </div>
+  <script>
+    review.onBattleLog(({ room, log }) => {
+      const turns = (log.match(/^\|turn\|/gm) || []).length;
+      document.getElementById('status').textContent = `${room}: ${turns} turns captured.`;
+    });
+  </script>
+</body>
+</html>
