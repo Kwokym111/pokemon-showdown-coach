@@ -11,6 +11,13 @@
 //   move-into-immunity            my move did nothing because the target is immune   -> mistake
 //   switched-into-super-effective I switched in and took a big super-effective hit   -> mistake / blunder
 //   switched-into-immunity        I switched in and the opponent's move did nothing  -> great
+//   missed-ko                     another available move surely KOs, I used a different attack -> mistake
+//   weak-move-choice              my attack did far less than another available one   -> mistake / blunder
+//   found-the-ko                  I knocked it out and no other available move could   -> good
+// The last three compare my choice with my other options using damage estimates
+// (damage.js, Random Battle spreads). They only use what the player could see at the start
+// of the turn, treat the opponent's unknown ability as the worst case, keep a safety margin
+// for its unknown item, and say nothing when the estimate is unavailable.
 //
 // A moment is only emitted when the player COULD HAVE KNOWN what would happen when they
 // chose. Both players pick at the start of a turn, so anything that changes during the
@@ -20,13 +27,31 @@
 // does not know (it returns null) means "skip this moment", never a guess.
 
 const { getMove, typeMultiplier, currentTypes } = require('./data');
+const { estimateRange } = require('./damage');
 
 // Every number and list that tunes the rules lives here.
 const CONFIG = {
   // switched-into-super-effective: share of max HP the incoming Pokémon lost.
   blunderDamagePct: 50, // this much, or a knock-out, is a blunder
   mistakeDamagePct: 25, // this much is a mistake; less than this is not worth flagging
-  labels: { moveIntoImmunity: 'mistake', switchedIntoImmunity: 'great' },
+  labels: { moveIntoImmunity: 'mistake', switchedIntoImmunity: 'great', missedKo: 'mistake', weakMoveChoice: 'mistake', foundTheKo: 'good' },
+
+  // Move-choice rules (missed-ko, weak-move-choice, found-the-ko). All percentages are of the
+  // opponent's MAX HP, like damage.js.
+  koMarginPct: 10, // "surely KOs" must beat its HP by this much (covers its unknown item, e.g. Assault Vest)
+  minAccuracy: 90, // a better move less accurate than this is not a fair recommendation
+  weakGapPct: 30, // the better move must deal this many points more than the one used...
+  weakRatio: 0.5, // ...and the one used must deal less than this share of it
+  weakBlunderGapPct: 60, // a gap this big is a blunder instead of a mistake
+  // Moves that only work in a situation the log cannot tell us, so they are never offered as
+  // the "better" move and never judged when the player chose them. (A move list, not a type chart.)
+  conditionalMoves: [
+    'Fake Out', 'First Impression', 'Sucker Punch', 'Thunderclap', 'Upper Hand', 'Dream Eater',
+    'Last Resort', 'Belch', 'Focus Punch', 'Poltergeist', 'Steel Roller', 'Snore', 'Counter',
+    'Mirror Coat', 'Metal Burst', 'Bide', 'Endeavor', 'Final Gambit', 'Hidden Power', 'Return',
+    'Frustration', 'Natural Gift', 'Fling', 'Present', 'Magnitude', 'Metronome', 'Mirror Move',
+    'Me First', 'Copycat', 'Sleep Talk', 'Spit Up', 'Synchronoise',
+  ],
   // Moves whose real type depends on the situation. data.js only knows their base type, so
   // we never judge a type matchup that rests on one of them. (A move list, not a type chart.)
   situationalTypeMoves: [
@@ -255,6 +280,119 @@ function switchRules(ctx, ti) {
 }
 
 // ---------------------------------------------------------------------------
+// Rules 4 to 6: comparing the move I chose with my other options
+// ---------------------------------------------------------------------------
+
+const toId = (s) => (s || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+
+// A move that commits you to something or only works in the right situation. It is neither
+// offered as the better option nor judged when the player picked it.
+const isSpecial = (d, cfg) => d.charge || d.recharge || d.selfDestruct || cfg.conditionalMoves.includes(d.name);
+const isAccurate = (d, cfg) => d.accuracy === true || d.accuracy >= cfg.minAccuracy;
+const accuracyOf = (d) => (d.accuracy === true ? 100 : d.accuracy);
+
+// What the player chose and what they could have chosen, with damage ranges against the
+// opponent as it was at the START of the turn. null when the turn cannot be judged.
+function moveChoice(ctx, ti) {
+  const { battle, cfg, gen, me, opp } = ctx;
+  const turn = battle.turns[ti];
+  const mine = turn.start[me];
+  const theirs = turn.start[opp];
+  if (!mine || !theirs || !turn.available || !mine.moveset) return null;
+  if (typeof theirs.hpPct !== 'number' || theirs.hpPct <= 0) return null;
+
+  // The first move I used that was not called by another move. No move (a switch, a flinch,
+  // knocked out first) means nothing to judge here.
+  const chosen = turn.moves.find((m) => m.side === me && !m.source);
+  if (!chosen || chosen.mon !== mine.name || chosen.failed || chosen.effectiveness === 'immune') return null;
+  // The opponent switched in this turn: the player chose against a different Pokémon.
+  if (!chosen.target || chosen.target.side !== opp || chosen.target.mon !== theirs.name) return null;
+
+  const oppTypes = currentTypes(gen, theirs);
+  if (!oppTypes) return null;
+
+  // Terastallizing before the move changes my own damage for every option.
+  const tera = turn.teras.find((t) => t.side === me && t.mon === mine.name && t.seq < chosen.seq);
+  const attacker = tera ? { ...mine, terastallized: true, teraType: tera.teraType } : mine;
+
+  const options = [];
+  for (const m of turn.available.moves) {
+    if (m.disabled || m.pp === 0) continue;
+    const data = getMove(gen, m.name);
+    if (!data || data.category === 'Status') continue;
+    const est = estimateRange(gen, attacker, theirs, m.name, { field: turn.field });
+    if (est) options.push({ name: data.name, data, est });
+  }
+  const chosenOpt = options.find((o) => toId(o.name) === toId(chosen.move));
+  if (!chosenOpt) return null; // a status move, or one the estimate cannot handle: not judged
+  return { turn, chosen, chosenOpt, others: options.filter((o) => o !== chosenOpt), theirs, oppTypes, hp: theirs.hpPct, cfg };
+}
+
+function moveChoiceRules(ctx, ti) {
+  const c = moveChoice(ctx, ti);
+  if (!c) return [];
+  const { cfg, turn, chosen, chosenOpt, others, theirs, oppTypes, hp } = c;
+  const oppFacts = { oppMon: theirs.name, oppTypes, oppHpPct: hp };
+  const mineFacts = { myMon: chosen.mon, myMove: chosenOpt.name, myMoveMinPct: chosenOpt.est.minPct, myMoveMaxPct: chosenOpt.est.maxPct };
+
+  // 6. found-the-ko: I knocked it out, and no other move I had could have.
+  if (chosen.knockedOut) {
+    if (others.length === 0 || !others.every((o) => o.est.maxPct + cfg.koMarginPct < hp)) return [];
+    const bestOther = others.reduce((b, o) => (o.est.maxPct > b.est.maxPct ? o : b));
+    return [{
+      seq: chosen.seq,
+      moment: {
+        turn: turn.turn, rule: 'found-the-ko', label: cfg.labels.foundTheKo, mon: chosen.mon, title: 'Found the knockout', explanation: null,
+        facts: {
+          ...mineFacts, bestOtherMove: bestOther.name, bestOtherMaxPct: bestOther.est.maxPct, ...oppFacts, knowable: true,
+          whyKnowable: `${theirs.name} was at ${hp}% HP, ${chosenOpt.name} does ${chosenOpt.est.minPct}-${chosenOpt.est.maxPct}% to it, and none of your other moves could do enough`,
+        },
+      },
+    }];
+  }
+
+  // A deliberate choice is never second-guessed: pivots, priority, charge/recharge/self-KO and
+  // situational moves.
+  const d = chosenOpt.data;
+  if (d.selfSwitch || d.priority > 0 || isSpecial(d, cfg)) return [];
+
+  const moment = (rule, label, title, better, why) => ({
+    seq: chosen.seq,
+    moment: {
+      turn: turn.turn, rule, label, mon: chosen.mon, title, explanation: null,
+      facts: {
+        ...mineFacts, betterMove: better.name, betterMoveMinPct: better.est.minPct, betterMoveMaxPct: better.est.maxPct,
+        ...oppFacts, oppAbilityKnown: better.est.oppAbilityKnown, knowable: true, whyKnowable: why,
+      },
+    },
+  });
+  // Only worth saying when the ability really was uncertain (more than one it could have).
+  const abilityText = (o) => (o.est.oppAbilityKnown || o.est.abilitiesTried.length < 2 ? '' : ' whichever ability it has');
+
+  // 4. missed-ko: another move surely knocks it out (with a margin), and I did not.
+  if (!chosenOpt.est.guaranteedKo) {
+    const kos = others.filter((o) => !isSpecial(o.data, cfg) && isAccurate(o.data, cfg) && o.est.guaranteedKo && o.est.minPct >= hp + cfg.koMarginPct);
+    if (kos.length) {
+      const best = kos.reduce((b, o) => (accuracyOf(o.data) > accuracyOf(b.data) || (accuracyOf(o.data) === accuracyOf(b.data) && o.est.minPct > b.est.minPct) ? o : b));
+      return [moment('missed-ko', cfg.labels.missedKo, 'Missed a knockout', best,
+        `${theirs.name} was at ${hp}% HP and ${best.name} does ${best.est.minPct}-${best.est.maxPct}% to it${abilityText(best)}, enough to knock it out; it was one of your available moves`)];
+    }
+  }
+
+  // 5. weak-move-choice: another clean, accurate move does far more. Damage beyond the
+  // opponent's remaining HP does not count, so a 30% move and a 90% move into a 10% target are equal.
+  const clean = others.filter((o) => !isSpecial(o.data, cfg) && !o.data.lockedMove && !o.data.selfDebuff && isAccurate(o.data, cfg));
+  if (!clean.length) return [];
+  const best = clean.reduce((b, o) => (Math.min(o.est.minPct, hp) > Math.min(b.est.minPct, hp) ? o : b));
+  const bestCap = Math.min(best.est.minPct, hp);
+  const chosenCap = Math.min(chosenOpt.est.maxPct, hp);
+  const gap = bestCap - chosenCap;
+  if (gap < cfg.weakGapPct || chosenCap >= cfg.weakRatio * bestCap) return [];
+  return [moment('weak-move-choice', gap >= cfg.weakBlunderGapPct ? 'blunder' : cfg.labels.weakMoveChoice, 'Used a much weaker move than another option', best,
+    `${theirs.name} was at ${hp}% HP; ${best.name} does ${best.est.minPct}-${best.est.maxPct}% to it${abilityText(best)} but ${chosenOpt.name} only ${chosenOpt.est.minPct}-${chosenOpt.est.maxPct}%, and both were available`)];
+}
+
+// ---------------------------------------------------------------------------
 // Entry point
 // ---------------------------------------------------------------------------
 
@@ -288,7 +426,7 @@ function buildReview(battle, { room = null, config } = {}) {
   // Turn 0 is the lead-in (the first switch-ins): nothing was decided there.
   for (let ti = 1; ti < battle.turns.length; ti++) {
     if (!battle.turns[ti].start) continue;
-    found.push(...moveIntoImmunity(ctx, ti), ...switchRules(ctx, ti));
+    found.push(...moveIntoImmunity(ctx, ti), ...switchRules(ctx, ti), ...moveChoiceRules(ctx, ti));
   }
   // Turns are already in order; seq orders moments within a turn.
   found.sort((a, b) => a.moment.turn - b.moment.turn || a.seq - b.seq);
@@ -296,4 +434,27 @@ function buildReview(battle, { room = null, config } = {}) {
   return review;
 }
 
-module.exports = { buildReview, CONFIG };
+// For scripts/show-review.js: what the move-choice rules saw on every turn they could judge
+// (the options and their damage ranges), whether or not anything was flagged.
+function describeMoveChoices(battle, { config } = {}) {
+  const cfg = { ...CONFIG, ...config, labels: { ...CONFIG.labels, ...(config && config.labels) } };
+  const me = battle.me;
+  if ((me !== 'p1' && me !== 'p2') || !Number.isInteger(battle.gen)) return [];
+  const ctx = { battle, cfg, gen: battle.gen, me, opp: otherSide(me) };
+  const out = [];
+  for (let ti = 1; ti < battle.turns.length; ti++) {
+    if (!battle.turns[ti].start) continue;
+    const c = moveChoice(ctx, ti);
+    if (!c) continue;
+    out.push({
+      turn: c.turn.turn, oppMon: c.theirs.name, oppHpPct: c.hp, chosen: c.chosenOpt.name, knockedOut: !!c.chosen.knockedOut,
+      options: [c.chosenOpt, ...c.others].map((o) => ({
+        name: o.name, minPct: o.est.minPct, maxPct: o.est.maxPct, guaranteedKo: o.est.guaranteedKo,
+        possibleKo: o.est.possibleKo, abilitiesTried: o.est.abilitiesTried,
+      })),
+    });
+  }
+  return out;
+}
+
+module.exports = { buildReview, describeMoveChoices, CONFIG };

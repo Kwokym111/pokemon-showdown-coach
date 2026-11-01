@@ -9,6 +9,17 @@
 // (and Tera replaces it), which is data.js's job (currentTypes). We only record the inputs:
 // species, teraType/terastallized, typeOverride (moves that change type) and
 // transformedInto (the species a Ditto/Transform user copied).
+//
+// Things that change damage are tracked as plain Showdown data, so damage.js can use them:
+//  - mon.boosts: stat stages per Pokémon ({ atk, def, spa, spd, spe, accuracy, evasion },
+//    -6..6). They end when the Pokémon leaves the field or faints. NOT handled: Baton Pass
+//    handing boosts to the next Pokémon.
+//  - battle.turns[n].field / .fieldEnd: { weather, terrain, screens: { p1: [], p2: [] } } at
+//    the start / end of the turn. `field` is what the player could see when choosing.
+//    Values are Showdown's own ids ('SunnyDay', 'Electric Terrain', 'Reflect'); damage.js
+//    translates them for the calculator. Hazards are ignored (they do not change move
+//    damage). NOT handled: Gravity, Trick Room, Magic/Wonder Room.
+// Every one of these lines still also becomes the same generic event as before.
 
 const { parseLine, parseIdent, parseDetails, parseCondition, stripRank } = require('./parser');
 
@@ -35,17 +46,20 @@ function freshState() {
     },
     mons: new Map(), // "p1|Name" -> mon
     active: { p1: null, p2: null },
+    field: { weather: null, terrain: null, screens: { p1: [], p2: [] } },
     turn: null,
     lastMove: null, // the move that following effect lines (-damage, -supereffective...) belong to
   };
-  s.turn = newTurn(0, null);
+  s.turn = newTurn(0, null, snapField(s));
   return s;
 }
 
-function newTurn(n, start) {
+function newTurn(n, start, field) {
   return {
     turn: n, // 0 = the lead-in switches before turn 1
     start, // active Pokémon at the start of the turn
+    field, // weather, terrain and screens at the start of the turn
+    fieldEnd: null, // the same at the end of the turn
     available: null, // my choices (from |request|): moves, canTerastallize, switchOptions
     forceSwitch: null, // set when I had to pick a replacement after a faint
     moves: [],
@@ -63,11 +77,23 @@ function push(s, ev) {
   return ev;
 }
 
+const BOOST_STATS = ['atk', 'def', 'spa', 'spd', 'spe', 'accuracy', 'evasion'];
+const zeroBoosts = () => ({ atk: 0, def: 0, spa: 0, spd: 0, spe: 0, accuracy: 0, evasion: 0 });
+
+const SCREENS = ['Reflect', 'Light Screen', 'Aurora Veil'];
+
+// A copy, so later events cannot change a snapshot that was already stored in a turn.
+function snapField(s) {
+  const f = s.field;
+  return { weather: f.weather, terrain: f.terrain, screens: { p1: [...f.screens.p1], p2: [...f.screens.p2] } };
+}
+
 function newMon(side, name) {
   return {
     side, name, species: name, level: 100, gender: null,
     hp: null, maxHp: null, hpPct: null, hpKind: null, status: null, fainted: false,
     terastallized: false, teraType: null, typeOverride: null, transformedInto: null,
+    boosts: zeroBoosts(),
     revealedMoves: [], ability: null, item: null, lostItem: null,
     // Only filled for MY Pokémon, from |request| (my own private info):
     moveset: null, plannedTera: null,
@@ -108,6 +134,7 @@ function snap(mon) {
     ...mon,
     revealedMoves: [...mon.revealedMoves],
     typeOverride: mon.typeOverride ? [...mon.typeOverride] : null,
+    boosts: { ...mon.boosts },
     moveset: mon.moveset ? [...mon.moveset] : null,
   };
 }
@@ -137,6 +164,7 @@ function onSwitch(s, { cmd, args, kw }) {
   if (prev && prev !== mon) { // type changes and Transform both end when the Pokémon leaves
     prev.typeOverride = null;
     prev.transformedInto = null;
+    prev.boosts = zeroBoosts(); // stat stages end when a Pokémon leaves (Baton Pass not handled)
   }
   s.active[mon.side] = mon;
   s.lastMove = null;
@@ -208,6 +236,7 @@ function onFaint(s, { args }) {
   if (!mon) return;
   mon.fainted = true;
   mon.hp = 0;
+  mon.boosts = zeroBoosts();
   refreshHp(s, mon);
   const ev = push(s, { type: 'faint', ...who(mon) });
   s.turn.faints.push(ev);
@@ -280,13 +309,14 @@ function onRequest(s, { args }) {
 function onTurn(s, { args }) {
   closeTurn(s);
   const n = Number(args[0]);
-  s.turn = newTurn(n, snapActive(s));
+  s.turn = newTurn(n, snapActive(s), snapField(s));
   s.battle.result.lastTurn = n;
   s.lastMove = null;
 }
 
 function closeTurn(s) {
   s.turn.end = snapActive(s);
+  s.turn.fieldEnd = snapField(s);
   s.battle.turns.push(s.turn);
 }
 
@@ -362,6 +392,88 @@ function onTransform(s, { cmd, args, kw }) {
   if (mon && target) mon.transformedInto = target.species;
   push(s, { type: cmd.slice(1), args, kw });
 }
+// Effects below change state AND stay in the event list, exactly like the generic fallback
+// in buildBattle did before they were modelled.
+function recordGeneric(s, { cmd, args, kw }) {
+  push(s, { type: cmd.slice(1), args, kw });
+}
+
+const clampBoost = (n) => Math.max(-6, Math.min(6, n));
+
+function onBoost(s, parsed) {
+  const { cmd, args } = parsed;
+  const mon = getMon(s, args[0]);
+  const stat = args[1];
+  const n = Number(args[2]);
+  if (mon && stat in mon.boosts && Number.isFinite(n)) {
+    if (cmd === '-boost') mon.boosts[stat] = clampBoost(mon.boosts[stat] + n);
+    else if (cmd === '-unboost') mon.boosts[stat] = clampBoost(mon.boosts[stat] - n);
+    else mon.boosts[stat] = clampBoost(n); // -setboost
+  }
+  recordGeneric(s, parsed);
+}
+
+// -clearboost, -clearpositiveboost, -clearnegativeboost, -invertboost (all on args[0]);
+// -clearallboost (everyone on the field).
+function onBoostReset(s, parsed) {
+  const { cmd, args } = parsed;
+  const targets = cmd === '-clearallboost' ? [s.active.p1, s.active.p2] : [getMon(s, args[0])];
+  for (const mon of targets) {
+    if (!mon) continue;
+    for (const stat of BOOST_STATS) {
+      const v = mon.boosts[stat];
+      if (cmd === '-clearpositiveboost' && v > 0) mon.boosts[stat] = 0;
+      else if (cmd === '-clearnegativeboost' && v < 0) mon.boosts[stat] = 0;
+      else if (cmd === '-invertboost') mon.boosts[stat] = -v || 0;
+      else if (cmd === '-clearboost' || cmd === '-clearallboost') mon.boosts[stat] = 0;
+    }
+  }
+  recordGeneric(s, parsed);
+}
+
+// |-swapboost|SOURCE|TARGET|atk, spa   (Guard/Power Swap: only the listed stats; none = all)
+// |-copyboost|SOURCE|TARGET            (Psych Up: SOURCE copies the boosts of TARGET)
+function onBoostCopy(s, parsed) {
+  const { cmd, args } = parsed;
+  const a = getMon(s, args[0]);
+  const b = getMon(s, args[1]);
+  if (a && b) {
+    const stats = cmd === '-swapboost' && args[2] ? args[2].split(',').map((x) => x.trim()) : BOOST_STATS;
+    for (const stat of stats) {
+      if (!(stat in a.boosts)) continue;
+      if (cmd === '-swapboost') [a.boosts[stat], b.boosts[stat]] = [b.boosts[stat], a.boosts[stat]];
+      else a.boosts[stat] = b.boosts[stat];
+    }
+  }
+  recordGeneric(s, parsed);
+}
+
+// |-weather|SunnyDay (or 'none'). The same line with [upkeep] repeats every turn: harmless.
+function onWeather(s, parsed) {
+  s.field.weather = parsed.args[0] === 'none' ? null : parsed.args[0] || null;
+  recordGeneric(s, parsed);
+}
+
+// |-fieldstart|move: Electric Terrain|[from] ability: ...   /   |-fieldend|move: Electric Terrain
+function onFieldEffect(s, parsed) {
+  const name = (parsed.args[0] || '').replace(/^move: /, '');
+  if (/ Terrain$/.test(name)) s.field.terrain = parsed.cmd === '-fieldstart' ? name : null;
+  recordGeneric(s, parsed);
+}
+
+// |-sidestart|p1: Name|move: Reflect   /   |-sideend|p1: Name|Reflect   (hazards are ignored)
+function onSideCondition(s, parsed) {
+  const side = (parsed.args[0] || '').slice(0, 2);
+  const name = (parsed.args[1] || '').replace(/^move: /, '');
+  const list = s.field.screens[side];
+  if (list && SCREENS.includes(name)) {
+    const i = list.indexOf(name);
+    if (parsed.cmd === '-sidestart' && i === -1) list.push(name);
+    if (parsed.cmd === '-sideend' && i !== -1) list.splice(i, 1);
+  }
+  recordGeneric(s, parsed);
+}
+
 function onCant(s, { args }) {
   const mon = getMon(s, args[0]);
   if (mon) push(s, { type: 'cant', ...who(mon), reason: args[1] || null, move: args[2] || null });
@@ -384,6 +496,13 @@ const HANDLERS = {
   '-ability': onAbility, '-item': onItem, '-enditem': onEndItem,
   '-status': onStatus, '-curestatus': onStatus,
   '-start': onStart,
+  '-boost': onBoost, '-unboost': onBoost, '-setboost': onBoost,
+  '-clearboost': onBoostReset, '-clearpositiveboost': onBoostReset, '-clearnegativeboost': onBoostReset,
+  '-clearallboost': onBoostReset, '-invertboost': onBoostReset,
+  '-swapboost': onBoostCopy, '-copyboost': onBoostCopy,
+  '-weather': onWeather,
+  '-fieldstart': onFieldEffect, '-fieldend': onFieldEffect,
+  '-sidestart': onSideCondition, '-sideend': onSideCondition,
   '-transform': onTransform,
   cant: onCant,
   gen: (s, { args }) => { s.battle.gen = Number(args[0]); },
@@ -401,6 +520,33 @@ const IGNORED = new Set([
   'deinit', 'error', 'sentchoice', 'askreg', 'uhtml', 'html', 'n', 'name',
 ]);
 
+// Most items and abilities are revealed as a side effect, not announced:
+//   |-damage|p2a: X|80/100|[from] item: Life Orb            (X holds a Life Orb)
+//   |-heal|p2a: X|90/100|[from] item: Leftovers
+//   |-damage|p1a: A|50/100|[from] item: Rocky Helmet|[of] p2a: D   (D holds it, not A)
+//   |-weather|SunnyDay|[from] ability: Drought|[of] p1a: T
+//   |-unboost|p1a: Y|atk|1|[from] ability: Intimidate|[of] p2a: X
+//   |-activate|p2a: X|ability: Flash Fire
+// The owner is the [of] Pokémon when there is one, else the Pokémon the line is about.
+// For MY side the |request| already holds the truth every turn, so only the opponent (or
+// both sides in a spectated log) is learned from here.
+function learnFromTags(s, { cmd, args, kw }) {
+  const found = [];
+  const fromTag = /^(item|ability): (.+)$/.exec(kw.from || '');
+  if (fromTag) found.push({ kind: fromTag[1], name: fromTag[2], owner: kw.of || args[0] });
+  if (cmd === '-activate' || cmd === '-start') {
+    const m = /^(item|ability): (.+)$/.exec(args[1] || '');
+    if (m) found.push({ kind: m[1], name: m[2], owner: args[0] });
+  }
+
+  for (const f of found) {
+    const id = parseIdent(f.owner);
+    if (!id || (s.battle.me && id.side === s.battle.me)) continue;
+    const mon = getMon(s, f.owner);
+    if (mon) mon[f.kind] = f.name;
+  }
+}
+
 // ---------------------------------------------------------------------------
 // Entry point
 // ---------------------------------------------------------------------------
@@ -416,10 +562,11 @@ function buildBattle(lines) {
     const parsed = parseLine(line);
     if (!parsed) continue;
 
+    learnFromTags(s, parsed);
     const handler = HANDLERS[parsed.cmd];
     if (handler) handler(s, parsed);
     else if (parsed.cmd.startsWith('-')) {
-      // Minor effects we do not model yet (weather, hazards, boosts, abilities...). Kept
+      // Minor effects we do not model yet (hazards, abilities...). Kept
       // in the event list so nothing is lost for the rules or the AI later.
       push(s, { type: parsed.cmd.slice(1), args: parsed.args, kw: parsed.kw });
     } else if (!IGNORED.has(parsed.cmd)) {
