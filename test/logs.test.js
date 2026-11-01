@@ -7,6 +7,7 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 const { initLogs, writeLines } = require('../src/main/logs');
+const { buildBattle } = require('../src/core/state');
 
 const readLog = (dir, name) => fs.readFileSync(path.join(dir, name), 'utf8').split('\n').filter((l) => l !== '');
 
@@ -37,10 +38,40 @@ test('replayed history leaves one clean copy of the battle', () => {
 
   const log = readLog(dir, 'battle-gen9randombattle-1.log');
   assert.strictEqual(log.filter((l) => l === '|init|battle').length, 1);
-  assert.deepStrictEqual(log, chunks[chunks.length - 1]);
+  // Same battle as the last replay. Requests from earlier copies may be carried over into
+  // it (see the next test), so compare everything except those lines.
+  const noRequests = (arr) => arr.filter((l) => !l.startsWith('|request|'));
+  assert.deepStrictEqual(noRequests(log), noRequests(chunks[chunks.length - 1]));
   // The battle's own ending (|win|, then |deinit) must survive the resets.
   assert.ok(log.includes('|win|cool213'));
   assert.strictEqual(log[log.length - 1], '|deinit');
+});
+
+test('a reload keeps the requests captured before it (end to end through writeLines)', () => {
+  const dir = newDir();
+  const room = 'battle-gen9randombattle-reload';
+  const original = fs.readFileSync(path.join(__dirname, '..', 'test-data', 'battle-gen9randombattle-2707357132.log'), 'utf8')
+    .split('\n').filter((l) => l !== '');
+
+  // 1) The battle is captured live, with every request.
+  writeLines(room, original);
+  const before = buildBattle(readLog(dir, `${room}.log`));
+  assert.ok(before.turns.filter((t) => t.available).length >= 10);
+
+  // 2) Page reload: Showdown replays the history with only the CURRENT request.
+  const lastRequest = original.map((l, i) => (l.startsWith('|request|') ? i : -1)).filter((i) => i >= 0).pop();
+  const replay = original.filter((l, i) => !l.startsWith('|request|') || i === lastRequest);
+  writeLines(room, replay);
+  const requestCount = () => readLog(dir, `${room}.log`).filter((l) => l.startsWith('|request|')).length;
+  const afterFirstReload = requestCount();
+  writeLines(room, replay); // and a second reload
+
+  // 3) One battle, the moves available each turn are still known, and a second reload
+  // does not pile up extra copies of the requests.
+  const file = readLog(dir, `${room}.log`);
+  assert.strictEqual(file.filter((l) => l === '|init|battle').length, 1);
+  assert.deepStrictEqual(buildBattle(file).turns.map((t) => t.available), before.turns.map((t) => t.available));
+  assert.strictEqual(requestCount(), afterFirstReload);
 });
 
 test('lines without |init|battle are appended', () => {

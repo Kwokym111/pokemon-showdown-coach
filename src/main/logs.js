@@ -4,6 +4,7 @@
 
 const path = require('path');
 const fs = require('fs');
+const { restoreRequests } = require('../core/requests');
 
 let logDir; // set once by initLogs(), after the app is ready
 
@@ -15,6 +16,14 @@ function initLogs(userDataPath) {
 
 function getLogDir() {
   return logDir;
+}
+
+function readLinesIfExists(file) {
+  try {
+    return fs.readFileSync(file, 'utf8').split('\n');
+  } catch {
+    return []; // first time we see this room: nothing to carry over
+  }
 }
 
 // Returns { fresh }: true when this write started the room's file over.
@@ -30,7 +39,10 @@ function writeLines(room, lines) {
   // Later frames of the same battle have no |init|, so they still append.
   const initIndex = lines.indexOf('|init|battle');
   if (initIndex !== -1) {
-    fs.writeFileSync(file, lines.slice(initIndex).join('\n') + '\n');
+    // The replay carries no old |request| lines (only the current one), so carry the ones
+    // we already saved over into the new file before it replaces the old one.
+    const kept = restoreRequests(lines.slice(initIndex), readLinesIfExists(file));
+    fs.writeFileSync(file, kept.join('\n') + '\n');
     return { fresh: true };
   }
 

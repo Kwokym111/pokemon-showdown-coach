@@ -46,7 +46,7 @@ docs/          plan.md, spike/
 - **Battle logs:** `<userData>/battle-logs/<roomid>.log` (the path is printed in the terminal on startup). On Windows: `C:\Users\<you>\AppData\Roaming\pokemon-helper-electron-spike\battle-logs`.
 - **Panel history:** shows the last 500 lines. Lines over 160 characters, mainly `|request|`, are shortened on screen only; the `.log` file keeps them in full.
 - **Opening DevTools on the Showdown view detaches the capture debugger.** The terminal says so, and capture stays off until you restart.
-- **Reloading Showdown replays the room history.** Every replay starts with `|init|battle`, so the room's log file is rewritten fresh at that point instead of getting duplicate lines. The panel clears at the same moment.
+- **Reloading Showdown replays the room history.** Every replay starts with `|init|battle`, so the room's log file is rewritten fresh at that point instead of getting duplicate lines. The panel clears at the same moment. The replay carries no old `|request|` lines (which moves you had available each turn), so the ones captured before the reload are put back (`src/core/requests.js`).
 - Showdown popups and external links open in your normal browser, not inside the app.
 
 ## Manual test checklist
