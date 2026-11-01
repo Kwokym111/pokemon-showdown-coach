@@ -6,7 +6,8 @@
   "private": true,
   "scripts": {
     "start": "electron .",
-    "test": "node --test"
+    "test": "node --test",
+    "summarize": "node scripts/summarize.js"
   },
   "devDependencies": {
     "electron": "^45.2.1"
