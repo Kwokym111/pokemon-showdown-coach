@@ -22,14 +22,20 @@
 // EXPORTS
 //
 //  getSpecies(gen, name)
-//    -> { name, types: ['Dragon', 'Ghost'], baseStats: { hp, atk, def, spa, spd, spe } } | null
+//    -> { name, types: ['Dragon', 'Ghost'], baseStats: { hp, atk, def, spa, spd, spe },
+//         abilities: ['Clear Body', 'Infiltrator', 'Cursed Body'] } | null
 //    A species' ORIGINAL types and base stats in that generation. Ignores Tera and
 //    in-battle type changes; for the types a Pokémon has right now use currentTypes.
+//    `abilities` lists every ability the species can have in that generation, hidden ones
+//    included; it is empty before Gen 3.
 //
 //  getMove(gen, name)
-//    -> { name, type, category, basePower, accuracy, priority } | null
+//    -> { name, type, category, basePower, accuracy, priority, selfSwitch, charge, recharge,
+//         selfDestruct, lockedMove, selfDebuff } | null
 //    category is 'Physical' | 'Special' | 'Status'. accuracy is a number (0 to 100) or
-//    `true` for moves that never miss. These are the move's BASE values: moves whose type
+//    `true` for moves that never miss. The last six are booleans for what the move commits
+//    you to: pivots out, takes a turn to charge, needs a recharge turn, makes the user
+//    faint, locks you in for several turns, lowers your own stats. These are the move's BASE values: moves whose type
 //    or power depends on the situation (Tera Blast, Weather Ball, Hidden Power, Judgment,
 //    Low Kick...) are not resolved here. For what a move really did in a battle, use the
 //    `effectiveness` and `damagePct` fields that buildBattle recorded from the log.
@@ -91,16 +97,28 @@ function getSpecies(gen, name) {
   const g = genData(gen);
   const sp = isName(name) ? g.species.get(name) : undefined;
   if (!sp) return null;
-  return { name: sp.name, types: [...sp.types], baseStats: { ...sp.baseStats } };
+  return {
+    name: sp.name, types: [...sp.types], baseStats: { ...sp.baseStats },
+    abilities: Object.values(sp.abilities || {}).filter(Boolean), // Gens 1 and 2 give { 0: '' }
+  };
 }
 
 function getMove(gen, name) {
   const g = genData(gen);
   const mv = isName(name) ? g.moves.get(name) : undefined;
   if (!mv) return null;
+  const flags = mv.flags || {};
+  const self = mv.self || {};
   return {
     name: mv.name, type: mv.type, category: mv.category,
     basePower: mv.basePower, accuracy: mv.accuracy, priority: mv.priority,
+    // What using the move costs or commits you to (all from the data, so they follow the gen):
+    selfSwitch: !!mv.selfSwitch, // U-turn, Volt Switch, Flip Turn...
+    charge: !!flags.charge, // hits a turn later (Solar Beam, Fly, Meteor Beam)
+    recharge: !!flags.recharge, // must rest afterwards (Hyper Beam)
+    selfDestruct: !!mv.selfdestruct, // the user faints (Explosion)
+    lockedMove: self.volatileStatus === 'lockedmove', // Outrage, Petal Dance
+    selfDebuff: !!(self.boosts && Object.values(self.boosts).some((v) => v < 0)), // Close Combat, Overheat
   };
 }
 

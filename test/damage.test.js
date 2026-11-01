@@ -241,3 +241,59 @@ test('state.js output feeds straight in: Koraidon in the real Sun turns of the T
   const without = estimateDamage(9, p1, p2, 'Flamethrower');
   assert.ok(withSun.maxPct > without.maxPct * 1.4);
 });
+
+// --- estimateRange: the defender's ability is not always known ---
+
+const { estimateRange } = require('../src/core/damage');
+
+test('estimateRange: a known ability runs one case and equals estimateDamage', () => {
+  const a = mon('Garchomp', 80);
+  const d = mon('Gholdengo', 82, { ability: 'goodasgold' });
+  const r = estimateRange(9, a, d, 'Earthquake');
+  const plain = estimateDamage(9, a, d, 'Earthquake');
+  assert.strictEqual(r.minPct, plain.minPct);
+  assert.strictEqual(r.maxPct, plain.maxPct);
+  assert.strictEqual(r.oppAbilityKnown, true);
+  assert.deepStrictEqual(r.abilitiesTried, ['goodasgold']);
+});
+
+test('estimateRange: one possible ability is just that case', () => {
+  const r = estimateRange(9, mon('Garchomp', 80), mon('Gholdengo', 82), 'Earthquake');
+  assert.deepStrictEqual(r.abilitiesTried, ['Good as Gold']);
+  assert.strictEqual(r.oppAbilityKnown, false);
+  assert.strictEqual(r.maxPct, 93.8);
+});
+
+test('estimateRange: unknown ability = worst case for "surely KOs", best case for "might KO"', () => {
+  // Heatran has Flash Fire or Flame Body: Flash Fire absorbs Fire moves, so a Fire move
+  // can no longer be called a sure KO, but it can still KO.
+  const a = mon('Koraidon', 64, { item: 'choiceband', ability: 'orichalcumpulse' });
+  const heatran = mon('Heatran', 80, { hpPct: 30 });
+  const r = estimateRange(9, a, heatran, 'Flare Blitz');
+  assert.deepStrictEqual(r.abilitiesTried, ['Flash Fire', 'Flame Body']);
+  assert.strictEqual(r.minPct, 0); // Flash Fire case
+  assert.ok(r.maxPct > 0);
+  assert.strictEqual(r.guaranteedKo, false);
+  assert.strictEqual(r.possibleKo, true);
+  // Known to have Flame Body: the same top damage as the best case above.
+  const flameBody = estimateRange(9, a, { ...heatran, ability: 'Flame Body' }, 'Flare Blitz');
+  assert.strictEqual(flameBody.maxPct, r.maxPct);
+});
+
+test('estimateRange: Levitate-only species takes 0 from Earthquake, and Gens 1 and 2 have no ability cases', () => {
+  const r = estimateRange(9, mon('Garchomp', 80), mon('Rotom-Wash', 80), 'Earthquake');
+  assert.strictEqual(r.maxPct, 0);
+  assert.strictEqual(r.possibleKo, false);
+  const old = estimateRange(2, mon('Snorlax', 50), mon('Snorlax', 50), 'Body Slam');
+  assert.ok(old && old.abilitiesTried.length === 0);
+});
+
+test('estimateRange: null for missing Pokémon, unknown move, status move; RangeError for a bad gen', () => {
+  const a = mon('Garchomp', 80);
+  const d = mon('Gholdengo', 82);
+  assert.strictEqual(estimateRange(9, null, d, 'Earthquake'), null);
+  assert.strictEqual(estimateRange(9, a, null, 'Earthquake'), null);
+  assert.strictEqual(estimateRange(9, a, d, 'Not A Move'), null);
+  assert.strictEqual(estimateRange(9, a, d, 'Thunder Wave'), null);
+  assert.throws(() => estimateRange(0, a, d, 'Earthquake'), RangeError);
+});

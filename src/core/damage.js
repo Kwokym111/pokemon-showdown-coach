@@ -58,6 +58,12 @@
 //    status move, a fainted defender. Never throws because of battle data. A bad `gen`
 //    throws a RangeError, the same as data.js.
 //
+//  estimateRange(gen, attacker, defender, moveName, options = {})
+//    -> like estimateDamage, but when the defender's ability is unknown it checks every
+//    ability the species can have: minPct is the lowest, maxPct the highest, guaranteedKo
+//    needs ALL of them to KO, possibleKo ANY. Adds abilitiesTried and oppAbilityKnown. Use
+//    this for the opponent; estimateDamage when the exact ability is already decided.
+//
 //  calcField(snapshot, attackerSide, defenderSide)
 //    -> a @smogon/calc Field built from a buildBattle field snapshot ({ weather, terrain,
 //    screens }, e.g. turn.field). Screens count only on the DEFENDER's side. Unknown
@@ -231,4 +237,42 @@ function estimateDamage(gen, attacker, defender, moveName, options = {}) {
   }
 }
 
-module.exports = { estimateDamage, calcPokemon, calcField };
+// estimateDamage, but safe against a defender whose ability is not known yet (the usual case
+// for the opponent). It tries every ability the species can have and keeps the worst case
+// for claims of "this will surely KO" and the best case for "this might KO". The calc
+// decides what each ability does (Levitate, Flash Fire, Multiscale...), so no ability facts
+// are hard-coded here. Same result shape as estimateDamage plus:
+//   abilitiesTried: the abilities that were checked (just the known one if it is known)
+//   oppAbilityKnown: true when the defender's ability was known and only one case was run
+// With one ability possible (or none listed, e.g. Gens 1 and 2) it is the same as
+// estimateDamage. `koChance` and `desc` come from the weakest case.
+function estimateRange(gen, attacker, defender, moveName, options = {}) {
+  genData(gen); // RangeError for a bad generation, even if the defender is missing
+  if (!defender) return null;
+  if (defender.ability) {
+    const r = estimateDamage(gen, attacker, defender, moveName, options);
+    return r && { ...r, abilitiesTried: [defender.ability], oppAbilityKnown: true };
+  }
+
+  const sp = getSpecies(gen, defender.transformedInto || defender.species);
+  const abilities = sp && sp.abilities.length ? sp.abilities : [null];
+  const cases = [];
+  for (const ability of abilities) {
+    const r = estimateDamage(gen, attacker, ability ? { ...defender, ability } : defender, moveName, options);
+    if (r) cases.push({ ability, r });
+  }
+  if (cases.length === 0) return null;
+
+  const weakest = cases.reduce((w, c) => (c.r.minPct < w.r.minPct ? c : w));
+  return {
+    ...weakest.r,
+    minPct: Math.min(...cases.map((c) => c.r.minPct)),
+    maxPct: Math.max(...cases.map((c) => c.r.maxPct)),
+    guaranteedKo: cases.every((c) => c.r.guaranteedKo),
+    possibleKo: cases.some((c) => c.r.possibleKo),
+    abilitiesTried: cases.map((c) => c.ability).filter(Boolean),
+    oppAbilityKnown: false,
+  };
+}
+
+module.exports = { estimateDamage, estimateRange, calcPokemon, calcField };

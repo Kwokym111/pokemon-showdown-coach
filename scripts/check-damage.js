@@ -83,9 +83,28 @@ function changedBeforeMove(turn, ev) {
 
 const nonZero = (b) => Object.entries(b || {}).filter(([, v]) => v !== 0).map(([k, v]) => `${k}${v > 0 ? '+' : ''}${v}`);
 
+// What the log eventually reveals about each Pokémon (name -> { item, ability }), so a miss can be
+// explained by "the item was only revealed later". Never used for the estimate itself.
+function finalKnowledge(battle) {
+  const known = {};
+  for (const t of battle.turns) {
+    for (const snaps of [t.start, t.end]) {
+      for (const side of ['p1', 'p2']) {
+        const m = snaps && snaps[side];
+        if (!m) continue;
+        const k = (known[`${side}|${m.name}`] = known[`${side}|${m.name}`] || { item: null, ability: null });
+        k.item = k.item || m.item || m.lostItem;
+        k.ability = k.ability || m.ability;
+      }
+    }
+  }
+  return known;
+}
+
 function checkBattle({ file, battle }, results, skipped) {
   const gen = battle.gen;
   if (!gen) return;
+  const later = finalKnowledge(battle);
 
   for (const turn of battle.turns) {
     if (!turn.start) continue;
@@ -120,17 +139,24 @@ function checkBattle({ file, battle }, results, skipped) {
 
       const guesses = [];
       const oppSide = battle.me === 'p1' ? 'p2' : 'p1';
+      let oppItemKnown = null;
+      let oppAbilityKnown = null;
       if (battle.me) {
-        if (attacker.side === oppSide && !attacker.item) guesses.push('opp attacker item unknown');
-        if (attacker.side === oppSide && !attacker.ability) guesses.push('opp attacker ability unknown');
-        if (defender.side === oppSide && !defender.item) guesses.push('opp defender item unknown');
-        if (defender.side === oppSide && !defender.ability) guesses.push('opp defender ability unknown');
+        const o = attacker.side === oppSide ? attacker : defender;
+        const role = o === attacker ? 'attacker' : 'defender';
+        oppItemKnown = !!o.item;
+        oppAbilityKnown = !!o.ability;
+        const final = later[`${o.side}|${o.name}`] || {};
+        for (const key of ['item', 'ability']) {
+          if (o[key]) continue;
+          guesses.push(final[key] ? `opp ${role} ${key} revealed later (${final[key]})` : `opp ${role} ${key} unknown`);
+        }
       }
       if (attacker.status) guesses.push(`attacker ${attacker.status}`);
 
       results.push({
         file, turn: turn.turn, attacker: ev.mon, defender: ev.target.mon, move: ev.move,
-        actual, min: est.minPct, max: est.maxPct, off, modelled, guesses,
+        actual, min: est.minPct, max: est.maxPct, off, modelled, guesses, oppItemKnown, oppAbilityKnown,
       });
     }
   }
@@ -156,6 +182,9 @@ console.log(`Inside the estimated range (+-${TOLERANCE} point): ${inside.length}
 console.log(`Within ${NEAR} points of the range:       ${near.length} (${pct(near.length, results.length)})`);
 console.log(`  hits with nothing special going on:                     ${plain.length}, inside range ${pct(plain.filter((r) => r.off === 0).length, plain.length)}`);
 console.log(`  hits with weather/terrain/boost/screen (now modelled):  ${withEffects.length}, inside range ${pct(withEffects.filter((r) => r.off === 0).length, withEffects.length)}`);
+
+const withOpp = results.filter((r) => r.oppItemKnown !== null);
+console.log(`  opponent item known at the start of the turn: ${pct(withOpp.filter((r) => r.oppItemKnown).length, withOpp.length)}, ability known: ${pct(withOpp.filter((r) => r.oppAbilityKnown).length, withOpp.length)} (of ${withOpp.length} hits)`);
 
 const misses = results.filter((r) => r.off !== 0).sort((x, y) => Math.abs(y.off) - Math.abs(x.off)).slice(0, 10);
 console.log(`\n${misses.length ? '10 biggest misses' : 'No misses'} (actual vs estimated range, in % of max HP):`);

@@ -8,7 +8,8 @@
     "start": "electron .",
     "test": "node --test",
     "summarize": "node scripts/summarize.js",
-    "check-damage": "node scripts/check-damage.js"
+    "check-damage": "node scripts/check-damage.js",
+    "show-review": "node scripts/show-review.js"
   },
   "devDependencies": {
     "electron": "^45.2.1"

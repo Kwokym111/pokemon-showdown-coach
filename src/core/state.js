@@ -520,6 +520,33 @@ const IGNORED = new Set([
   'deinit', 'error', 'sentchoice', 'askreg', 'uhtml', 'html', 'n', 'name',
 ]);
 
+// Most items and abilities are revealed as a side effect, not announced:
+//   |-damage|p2a: X|80/100|[from] item: Life Orb            (X holds a Life Orb)
+//   |-heal|p2a: X|90/100|[from] item: Leftovers
+//   |-damage|p1a: A|50/100|[from] item: Rocky Helmet|[of] p2a: D   (D holds it, not A)
+//   |-weather|SunnyDay|[from] ability: Drought|[of] p1a: T
+//   |-unboost|p1a: Y|atk|1|[from] ability: Intimidate|[of] p2a: X
+//   |-activate|p2a: X|ability: Flash Fire
+// The owner is the [of] Pokémon when there is one, else the Pokémon the line is about.
+// For MY side the |request| already holds the truth every turn, so only the opponent (or
+// both sides in a spectated log) is learned from here.
+function learnFromTags(s, { cmd, args, kw }) {
+  const found = [];
+  const fromTag = /^(item|ability): (.+)$/.exec(kw.from || '');
+  if (fromTag) found.push({ kind: fromTag[1], name: fromTag[2], owner: kw.of || args[0] });
+  if (cmd === '-activate' || cmd === '-start') {
+    const m = /^(item|ability): (.+)$/.exec(args[1] || '');
+    if (m) found.push({ kind: m[1], name: m[2], owner: args[0] });
+  }
+
+  for (const f of found) {
+    const id = parseIdent(f.owner);
+    if (!id || (s.battle.me && id.side === s.battle.me)) continue;
+    const mon = getMon(s, f.owner);
+    if (mon) mon[f.kind] = f.name;
+  }
+}
+
 // ---------------------------------------------------------------------------
 // Entry point
 // ---------------------------------------------------------------------------
@@ -535,6 +562,7 @@ function buildBattle(lines) {
     const parsed = parseLine(line);
     if (!parsed) continue;
 
+    learnFromTags(s, parsed);
     const handler = HANDLERS[parsed.cmd];
     if (handler) handler(s, parsed);
     else if (parsed.cmd.startsWith('-')) {

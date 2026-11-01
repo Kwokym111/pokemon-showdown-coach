@@ -21,6 +21,9 @@ const SAMPLE_KEYS = {
   'move-into-immunity': ['myMon', 'myMove', 'myMoveType', 'oppMon', 'oppTypes', 'multiplier', 'effectiveness', 'damagePct', 'knowable', 'whyKnowable'],
   'switched-into-immunity': ['myMon', 'myTypes', 'switchedOut', 'oppMon', 'oppTypes', 'oppMove', 'oppMoveType', 'multiplier', 'effectiveness', 'damagePct', 'knowable', 'whyKnowable'],
   'switched-into-super-effective': ['myMon', 'myTypes', 'switchedOut', 'oppMon', 'oppTypes', 'oppMove', 'oppMoveType', 'multiplier', 'damagePct', 'hpBefore', 'hpAfter', 'knockedOut', 'knowable', 'whyKnowable'],
+  'missed-ko': ['myMon', 'myMove', 'myMoveMinPct', 'myMoveMaxPct', 'betterMove', 'betterMoveMinPct', 'betterMoveMaxPct', 'oppMon', 'oppTypes', 'oppHpPct', 'oppAbilityKnown', 'knowable', 'whyKnowable'],
+  'weak-move-choice': ['myMon', 'myMove', 'myMoveMinPct', 'myMoveMaxPct', 'betterMove', 'betterMoveMinPct', 'betterMoveMaxPct', 'oppMon', 'oppTypes', 'oppHpPct', 'oppAbilityKnown', 'knowable', 'whyKnowable'],
+  'found-the-ko': ['myMon', 'myMove', 'myMoveMinPct', 'myMoveMaxPct', 'bestOtherMove', 'bestOtherMaxPct', 'oppMon', 'oppTypes', 'oppHpPct', 'knowable', 'whyKnowable'],
 };
 
 function assertShape(review) {

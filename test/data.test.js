@@ -165,3 +165,11 @@ test('real battle: Ditto that Imposter-copied Pawmot has Pawmot\'s types', () =>
   assert.strictEqual(ditto.transformedInto, 'Pawmot');
   assert.deepStrictEqual(data.currentTypes(b.gen, ditto), ['Electric', 'Fighting']);
 });
+
+test('getSpecies: abilities per generation (hidden ones included, empty before Gen 3)', () => {
+  assert.deepStrictEqual(data.getSpecies(9, 'Gholdengo').abilities, ['Good as Gold']);
+  assert.deepStrictEqual(data.getSpecies(9, 'Dragapult').abilities, ['Clear Body', 'Infiltrator', 'Cursed Body']);
+  assert.deepStrictEqual(data.getSpecies(5, 'Garchomp').abilities, ['Sand Veil', 'Rough Skin']);
+  assert.deepStrictEqual(data.getSpecies(2, 'Snorlax').abilities, []);
+  assert.deepStrictEqual(data.getSpecies(1, 'Snorlax').abilities, []);
+});
