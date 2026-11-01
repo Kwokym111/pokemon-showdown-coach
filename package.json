@@ -7,13 +7,15 @@
   "scripts": {
     "start": "electron .",
     "test": "node --test",
-    "summarize": "node scripts/summarize.js"
+    "summarize": "node scripts/summarize.js",
+    "check-damage": "node scripts/check-damage.js"
   },
   "devDependencies": {
     "electron": "^45.2.1"
   },
   "dependencies": {
     "@pkmn/data": "^0.10.12",
-    "@pkmn/dex": "^0.10.12"
+    "@pkmn/dex": "^0.10.12",
+    "@smogon/calc": "0.12.0"
   }
 }
