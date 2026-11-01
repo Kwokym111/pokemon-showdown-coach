@@ -1,0 +1,371 @@
+|init|battle
+|title|anonop vs. cool213
+|j|☆anonop
+|j|☆cool213
+|t:|1793521112
+|gametype|singles
+|player|p1|anonop|102|
+|player|p2|cool213|101|
+|gen|9
+|tier|[Gen 9] Random Battle
+|rule|Species Clause: Limit one of each Pokemon
+|rule|HP Percentage Mod: HP is shown in percentages
+|rule|Sleep Clause Mod: Limit one foe put to sleep
+|rule|Illusion Level Mod: Illusion disguises the Pokemon's true level
+|
+|t:|1793521112
+|teamsize|p1|6
+|teamsize|p2|6
+|start
+|switch|p1a: Deoxys|Deoxys-Attack, L72|100/100
+|switch|p2a: Tyranitar|Tyranitar, L78, F|284/284
+|-ability|p1a: Deoxys|Pressure
+|-weather|Sandstorm|[from] ability: Sand Stream|[of] p2a: Tyranitar
+|turn|1
+|request|{"active":[{"moves":[{"move":"Knock Off","id":"knockoff","pp":32,"maxpp":32,"target":"normal","disabled":false},{"move":"Ice Punch","id":"icepunch","pp":24,"maxpp":24,"target":"normal","disabled":false},{"move":"Stone Edge","id":"stoneedge","pp":8,"maxpp":8,"target":"normal","disabled":false},{"move":"Dragon Dance","id":"dragondance","pp":32,"maxpp":32,"target":"self","disabled":false}],"canTerastallize":"Ghost"}],"side":{"name":"cool213","id":"p2","pokemon":[{"ident":"p2: Tyranitar","details":"Tyranitar, L78, F","condition":"284/284","active":true,"stats":{"atk":254,"def":217,"spa":193,"spd":201,"spe":140},"moves":["knockoff","icepunch","stoneedge","dragondance"],"baseAbility":"sandstream","item":"weaknesspolicy","pokeball":"pokeball","ability":"sandstream","commanding":false,"reviving":false,"teraType":"Ghost","terastallized":""},{"ident":"p2: Virizion","details":"Virizion, L82","condition":"283/283","active":false,"stats":{"atk":195,"def":165,"spa":195,"spd":259,"spe":224},"moves":["closecombat","swordsdance","leafblade","stoneedge"],"baseAbility":"justified","item":"lifeorb","pokeball":"pokeball","ability":"justified","commanding":false,"reviving":false,"teraType":"Rock","terastallized":""},{"ident":"p2: Terapagos","details":"Terapagos, L77, F","condition":"265/265","active":false,"stats":{"atk":145,"def":175,"spa":145,"spd":175,"spe":137},"moves":["darkpulse","calmmind","rapidspin","terastarstorm"],"baseAbility":"terashift","item":"heavydutyboots","pokeball":"pokeball","ability":"terashift","commanding":false,"reviving":false,"teraType":"Stellar","terastallized":""},{"ident":"p2: Phione","details":"Phione, L91","condition":"293/293","active":false,"stats":{"atk":150,"def":197,"spa":197,"spd":197,"spe":197},"moves":["sleeptalk","rest","scald","takeheart"],"baseAbility":"hydration","item":"leftovers","pokeball":"pokeball","ability":"hydration","commanding":false,"reviving":false,"teraType":"Dragon","terastallized":""},{"ident":"p2: Minior","details":"Minior-Orange, L79","condition":"224/224","active":false,"stats":{"atk":204,"def":140,"spa":204,"spd":140,"spe":235},"moves":["powergem","acrobatics","shellsmash","earthquake"],"baseAbility":"shieldsdown","item":"whiteherb","pokeball":"pokeball","ability":"shieldsdown","commanding":false,"reviving":false,"teraType":"Steel","terastallized":""},{"ident":"p2: Articuno","details":"Articuno, L86","condition":"295/295","active":false,"stats":{"atk":195,"def":221,"spa":213,"spd":264,"spe":195},"moves":["roost","freezedry","bravebird","substitute"],"baseAbility":"pressure","item":"heavydutyboots","pokeball":"pokeball","ability":"pressure","commanding":false,"reviving":false,"teraType":"Steel","terastallized":""}]},"rqid":3}
+|
+|t:|1793521123
+|-terastallize|p1a: Deoxys|Fighting
+|move|p1a: Deoxys|Superpower|p2a: Tyranitar
+|-supereffective|p2a: Tyranitar
+|-damage|p2a: Tyranitar|0 fnt
+|-unboost|p1a: Deoxys|atk|1
+|-unboost|p1a: Deoxys|def|1
+|faint|p2a: Tyranitar
+|-damage|p1a: Deoxys|91/100|[from] item: Life Orb
+|
+|-weather|Sandstorm|[upkeep]
+|-damage|p1a: Deoxys|85/100|[from] Sandstorm
+|upkeep
+|request|{"forceSwitch":[true],"side":{"name":"cool213","id":"p2","pokemon":[{"ident":"p2: Tyranitar","details":"Tyranitar, L78, F","condition":"0 fnt","active":true,"stats":{"atk":254,"def":217,"spa":193,"spd":201,"spe":140},"moves":["knockoff","icepunch","stoneedge","dragondance"],"baseAbility":"sandstream","item":"weaknesspolicy","pokeball":"pokeball","ability":"sandstream","commanding":false,"reviving":false,"teraType":"Ghost","terastallized":""},{"ident":"p2: Virizion","details":"Virizion, L82","condition":"283/283","active":false,"stats":{"atk":195,"def":165,"spa":195,"spd":259,"spe":224},"moves":["closecombat","swordsdance","leafblade","stoneedge"],"baseAbility":"justified","item":"lifeorb","pokeball":"pokeball","ability":"justified","commanding":false,"reviving":false,"teraType":"Rock","terastallized":""},{"ident":"p2: Terapagos","details":"Terapagos, L77, F","condition":"265/265","active":false,"stats":{"atk":145,"def":175,"spa":145,"spd":175,"spe":137},"moves":["darkpulse","calmmind","rapidspin","terastarstorm"],"baseAbility":"terashift","item":"heavydutyboots","pokeball":"pokeball","ability":"terashift","commanding":false,"reviving":false,"teraType":"Stellar","terastallized":""},{"ident":"p2: Phione","details":"Phione, L91","condition":"293/293","active":false,"stats":{"atk":150,"def":197,"spa":197,"spd":197,"spe":197},"moves":["sleeptalk","rest","scald","takeheart"],"baseAbility":"hydration","item":"leftovers","pokeball":"pokeball","ability":"hydration","commanding":false,"reviving":false,"teraType":"Dragon","terastallized":""},{"ident":"p2: Minior","details":"Minior-Orange, L79","condition":"224/224","active":false,"stats":{"atk":204,"def":140,"spa":204,"spd":140,"spe":235},"moves":["powergem","acrobatics","shellsmash","earthquake"],"baseAbility":"shieldsdown","item":"whiteherb","pokeball":"pokeball","ability":"shieldsdown","commanding":false,"reviving":false,"teraType":"Steel","terastallized":""},{"ident":"p2: Articuno","details":"Articuno, L86","condition":"295/295","active":false,"stats":{"atk":195,"def":221,"spa":213,"spd":264,"spe":195},"moves":["roost","freezedry","bravebird","substitute"],"baseAbility":"pressure","item":"heavydutyboots","pokeball":"pokeball","ability":"pressure","commanding":false,"reviving":false,"teraType":"Steel","terastallized":""}]},"noCancel":true,"rqid":5}
+|
+|t:|1793521128
+|switch|p2a: Articuno|Articuno, L86|295/295
+|-ability|p2a: Articuno|Pressure
+|turn|2
+|request|{"active":[{"moves":[{"move":"Roost","id":"roost","pp":8,"maxpp":8,"target":"self","disabled":false},{"move":"Freeze-Dry","id":"freezedry","pp":32,"maxpp":32,"target":"normal","disabled":false},{"move":"Brave Bird","id":"bravebird","pp":24,"maxpp":24,"target":"any","disabled":false},{"move":"Substitute","id":"substitute","pp":16,"maxpp":16,"target":"self","disabled":false}],"canTerastallize":"Steel"}],"side":{"name":"cool213","id":"p2","pokemon":[{"ident":"p2: Articuno","details":"Articuno, L86","condition":"295/295","active":true,"stats":{"atk":195,"def":221,"spa":213,"spd":264,"spe":195},"moves":["roost","freezedry","bravebird","substitute"],"baseAbility":"pressure","item":"heavydutyboots","pokeball":"pokeball","ability":"pressure","commanding":false,"reviving":false,"teraType":"Steel","terastallized":""},{"ident":"p2: Virizion","details":"Virizion, L82","condition":"283/283","active":false,"stats":{"atk":195,"def":165,"spa":195,"spd":259,"spe":224},"moves":["closecombat","swordsdance","leafblade","stoneedge"],"baseAbility":"justified","item":"lifeorb","pokeball":"pokeball","ability":"justified","commanding":false,"reviving":false,"teraType":"Rock","terastallized":""},{"ident":"p2: Terapagos","details":"Terapagos, L77, F","condition":"265/265","active":false,"stats":{"atk":145,"def":175,"spa":145,"spd":175,"spe":137},"moves":["darkpulse","calmmind","rapidspin","terastarstorm"],"baseAbility":"terashift","item":"heavydutyboots","pokeball":"pokeball","ability":"terashift","commanding":false,"reviving":false,"teraType":"Stellar","terastallized":""},{"ident":"p2: Phione","details":"Phione, L91","condition":"293/293","active":false,"stats":{"atk":150,"def":197,"spa":197,"spd":197,"spe":197},"moves":["sleeptalk","rest","scald","takeheart"],"baseAbility":"hydration","item":"leftovers","pokeball":"pokeball","ability":"hydration","commanding":false,"reviving":false,"teraType":"Dragon","terastallized":""},{"ident":"p2: Minior","details":"Minior-Orange, L79","condition":"224/224","active":false,"stats":{"atk":204,"def":140,"spa":204,"spd":140,"spe":235},"moves":["powergem","acrobatics","shellsmash","earthquake"],"baseAbility":"shieldsdown","item":"whiteherb","pokeball":"pokeball","ability":"shieldsdown","commanding":false,"reviving":false,"teraType":"Steel","terastallized":""},{"ident":"p2: Tyranitar","details":"Tyranitar, L78, F","condition":"0 fnt","active":false,"stats":{"atk":254,"def":217,"spa":193,"spd":201,"spe":140},"moves":["knockoff","icepunch","stoneedge","dragondance"],"baseAbility":"sandstream","item":"weaknesspolicy","pokeball":"pokeball","ability":"sandstream","commanding":false,"reviving":false,"teraType":"Ghost","terastallized":""}]},"rqid":7}
+|
+|t:|1793521134
+|move|p1a: Deoxys|Superpower|p2a: Articuno
+|-damage|p2a: Articuno|173/295
+|-unboost|p1a: Deoxys|atk|1
+|-unboost|p1a: Deoxys|def|1
+|-damage|p1a: Deoxys|75/100|[from] item: Life Orb
+|move|p2a: Articuno|Brave Bird|p1a: Deoxys
+|-supereffective|p1a: Deoxys
+|-damage|p1a: Deoxys|0 fnt
+|faint|p1a: Deoxys
+|-damage|p2a: Articuno|126/295|[from] Recoil
+|
+|-weather|Sandstorm|[upkeep]
+|-damage|p2a: Articuno|108/295|[from] Sandstorm
+|upkeep
+|request|{"wait":true,"side":{"name":"cool213","id":"p2","pokemon":[{"ident":"p2: Articuno","details":"Articuno, L86","condition":"108/295","active":true,"stats":{"atk":195,"def":221,"spa":213,"spd":264,"spe":195},"moves":["roost","freezedry","bravebird","substitute"],"baseAbility":"pressure","item":"heavydutyboots","pokeball":"pokeball","ability":"pressure","commanding":false,"reviving":false,"teraType":"Steel","terastallized":""},{"ident":"p2: Virizion","details":"Virizion, L82","condition":"283/283","active":false,"stats":{"atk":195,"def":165,"spa":195,"spd":259,"spe":224},"moves":["closecombat","swordsdance","leafblade","stoneedge"],"baseAbility":"justified","item":"lifeorb","pokeball":"pokeball","ability":"justified","commanding":false,"reviving":false,"teraType":"Rock","terastallized":""},{"ident":"p2: Terapagos","details":"Terapagos, L77, F","condition":"265/265","active":false,"stats":{"atk":145,"def":175,"spa":145,"spd":175,"spe":137},"moves":["darkpulse","calmmind","rapidspin","terastarstorm"],"baseAbility":"terashift","item":"heavydutyboots","pokeball":"pokeball","ability":"terashift","commanding":false,"reviving":false,"teraType":"Stellar","terastallized":""},{"ident":"p2: Phione","details":"Phione, L91","condition":"293/293","active":false,"stats":{"atk":150,"def":197,"spa":197,"spd":197,"spe":197},"moves":["sleeptalk","rest","scald","takeheart"],"baseAbility":"hydration","item":"leftovers","pokeball":"pokeball","ability":"hydration","commanding":false,"reviving":false,"teraType":"Dragon","terastallized":""},{"ident":"p2: Minior","details":"Minior-Orange, L79","condition":"224/224","active":false,"stats":{"atk":204,"def":140,"spa":204,"spd":140,"spe":235},"moves":["powergem","acrobatics","shellsmash","earthquake"],"baseAbility":"shieldsdown","item":"whiteherb","pokeball":"pokeball","ability":"shieldsdown","commanding":false,"reviving":false,"teraType":"Steel","terastallized":""},{"ident":"p2: Tyranitar","details":"Tyranitar, L78, F","condition":"0 fnt","active":false,"stats":{"atk":254,"def":217,"spa":193,"spd":201,"spe":140},"moves":["knockoff","icepunch","stoneedge","dragondance"],"baseAbility":"sandstream","item":"weaknesspolicy","pokeball":"pokeball","ability":"sandstream","commanding":false,"reviving":false,"teraType":"Ghost","terastallized":""}]},"rqid":9}
+|
+|t:|1793521139
+|switch|p1a: Iron Crown|Iron Crown, L78|100/100
+|turn|3
+|request|{"active":[{"moves":[{"move":"Roost","id":"roost","pp":8,"maxpp":8,"target":"self","disabled":false},{"move":"Freeze-Dry","id":"freezedry","pp":32,"maxpp":32,"target":"normal","disabled":false},{"move":"Brave Bird","id":"bravebird","pp":22,"maxpp":24,"target":"any","disabled":false},{"move":"Substitute","id":"substitute","pp":16,"maxpp":16,"target":"self","disabled":false}],"canTerastallize":"Steel"}],"side":{"name":"cool213","id":"p2","pokemon":[{"ident":"p2: Articuno","details":"Articuno, L86","condition":"108/295","active":true,"stats":{"atk":195,"def":221,"spa":213,"spd":264,"spe":195},"moves":["roost","freezedry","bravebird","substitute"],"baseAbility":"pressure","item":"heavydutyboots","pokeball":"pokeball","ability":"pressure","commanding":false,"reviving":false,"teraType":"Steel","terastallized":""},{"ident":"p2: Virizion","details":"Virizion, L82","condition":"283/283","active":false,"stats":{"atk":195,"def":165,"spa":195,"spd":259,"spe":224},"moves":["closecombat","swordsdance","leafblade","stoneedge"],"baseAbility":"justified","item":"lifeorb","pokeball":"pokeball","ability":"justified","commanding":false,"reviving":false,"teraType":"Rock","terastallized":""},{"ident":"p2: Terapagos","details":"Terapagos, L77, F","condition":"265/265","active":false,"stats":{"atk":145,"def":175,"spa":145,"spd":175,"spe":137},"moves":["darkpulse","calmmind","rapidspin","terastarstorm"],"baseAbility":"terashift","item":"heavydutyboots","pokeball":"pokeball","ability":"terashift","commanding":false,"reviving":false,"teraType":"Stellar","terastallized":""},{"ident":"p2: Phione","details":"Phione, L91","condition":"293/293","active":false,"stats":{"atk":150,"def":197,"spa":197,"spd":197,"spe":197},"moves":["sleeptalk","rest","scald","takeheart"],"baseAbility":"hydration","item":"leftovers","pokeball":"pokeball","ability":"hydration","commanding":false,"reviving":false,"teraType":"Dragon","terastallized":""},{"ident":"p2: Minior","details":"Minior-Orange, L79","condition":"224/224","active":false,"stats":{"atk":204,"def":140,"spa":204,"spd":140,"spe":235},"moves":["powergem","acrobatics","shellsmash","earthquake"],"baseAbility":"shieldsdown","item":"whiteherb","pokeball":"pokeball","ability":"shieldsdown","commanding":false,"reviving":false,"teraType":"Steel","terastallized":""},{"ident":"p2: Tyranitar","details":"Tyranitar, L78, F","condition":"0 fnt","active":false,"stats":{"atk":254,"def":217,"spa":193,"spd":201,"spe":140},"moves":["knockoff","icepunch","stoneedge","dragondance"],"baseAbility":"sandstream","item":"weaknesspolicy","pokeball":"pokeball","ability":"sandstream","commanding":false,"reviving":false,"teraType":"Ghost","terastallized":""}]},"rqid":11}
+|init|battle
+|title|anonop vs. cool213
+|j|☆anonop
+|j|☆cool213
+|t:|1793521112
+|gametype|singles
+|player|p1|anonop|102|
+|player|p2|cool213|101|
+|gen|9
+|tier|[Gen 9] Random Battle
+|rule|Species Clause: Limit one of each Pokemon
+|rule|HP Percentage Mod: HP is shown in percentages
+|rule|Sleep Clause Mod: Limit one foe put to sleep
+|rule|Illusion Level Mod: Illusion disguises the Pokemon's true level
+|
+|t:|1793521112
+|teamsize|p1|6
+|teamsize|p2|6
+|start
+|switch|p1a: Deoxys|Deoxys-Attack, L72|100/100
+|switch|p2a: Tyranitar|Tyranitar, L78, F|284/284
+|-ability|p1a: Deoxys|Pressure
+|-weather|Sandstorm|[from] ability: Sand Stream|[of] p2a: Tyranitar
+|turn|1
+|
+|t:|1793521123
+|-terastallize|p1a: Deoxys|Fighting
+|move|p1a: Deoxys|Superpower|p2a: Tyranitar
+|-supereffective|p2a: Tyranitar
+|-damage|p2a: Tyranitar|0 fnt
+|-unboost|p1a: Deoxys|atk|1
+|-unboost|p1a: Deoxys|def|1
+|faint|p2a: Tyranitar
+|-damage|p1a: Deoxys|91/100|[from] item: Life Orb
+|
+|-weather|Sandstorm|[upkeep]
+|-damage|p1a: Deoxys|85/100|[from] Sandstorm
+|upkeep
+|
+|t:|1793521128
+|switch|p2a: Articuno|Articuno, L86|295/295
+|-ability|p2a: Articuno|Pressure
+|turn|2
+|
+|t:|1793521134
+|move|p1a: Deoxys|Superpower|p2a: Articuno
+|-damage|p2a: Articuno|173/295
+|-unboost|p1a: Deoxys|atk|1
+|-unboost|p1a: Deoxys|def|1
+|-damage|p1a: Deoxys|75/100|[from] item: Life Orb
+|move|p2a: Articuno|Brave Bird|p1a: Deoxys
+|-supereffective|p1a: Deoxys
+|-damage|p1a: Deoxys|0 fnt
+|faint|p1a: Deoxys
+|-damage|p2a: Articuno|126/295|[from] Recoil
+|
+|-weather|Sandstorm|[upkeep]
+|-damage|p2a: Articuno|108/295|[from] Sandstorm
+|upkeep
+|
+|t:|1793521139
+|switch|p1a: Iron Crown|Iron Crown, L78|100/100
+|turn|3
+|l|☆cool213
+|player|p2|
+|j|☆cool213
+|player|p2|cool213|101|
+|request|{"active":[{"moves":[{"move":"Roost","id":"roost","pp":8,"maxpp":8,"target":"self","disabled":false},{"move":"Freeze-Dry","id":"freezedry","pp":32,"maxpp":32,"target":"normal","disabled":false},{"move":"Brave Bird","id":"bravebird","pp":22,"maxpp":24,"target":"any","disabled":false},{"move":"Substitute","id":"substitute","pp":16,"maxpp":16,"target":"self","disabled":false}],"canTerastallize":"Steel"}],"side":{"name":"cool213","id":"p2","pokemon":[{"ident":"p2: Articuno","details":"Articuno, L86","condition":"108/295","active":true,"stats":{"atk":195,"def":221,"spa":213,"spd":264,"spe":195},"moves":["roost","freezedry","bravebird","substitute"],"baseAbility":"pressure","item":"heavydutyboots","pokeball":"pokeball","ability":"pressure","commanding":false,"reviving":false,"teraType":"Steel","terastallized":""},{"ident":"p2: Virizion","details":"Virizion, L82","condition":"283/283","active":false,"stats":{"atk":195,"def":165,"spa":195,"spd":259,"spe":224},"moves":["closecombat","swordsdance","leafblade","stoneedge"],"baseAbility":"justified","item":"lifeorb","pokeball":"pokeball","ability":"justified","commanding":false,"reviving":false,"teraType":"Rock","terastallized":""},{"ident":"p2: Terapagos","details":"Terapagos, L77, F","condition":"265/265","active":false,"stats":{"atk":145,"def":175,"spa":145,"spd":175,"spe":137},"moves":["darkpulse","calmmind","rapidspin","terastarstorm"],"baseAbility":"terashift","item":"heavydutyboots","pokeball":"pokeball","ability":"terashift","commanding":false,"reviving":false,"teraType":"Stellar","terastallized":""},{"ident":"p2: Phione","details":"Phione, L91","condition":"293/293","active":false,"stats":{"atk":150,"def":197,"spa":197,"spd":197,"spe":197},"moves":["sleeptalk","rest","scald","takeheart"],"baseAbility":"hydration","item":"leftovers","pokeball":"pokeball","ability":"hydration","commanding":false,"reviving":false,"teraType":"Dragon","terastallized":""},{"ident":"p2: Minior","details":"Minior-Orange, L79","condition":"224/224","active":false,"stats":{"atk":204,"def":140,"spa":204,"spd":140,"spe":235},"moves":["powergem","acrobatics","shellsmash","earthquake"],"baseAbility":"shieldsdown","item":"whiteherb","pokeball":"pokeball","ability":"shieldsdown","commanding":false,"reviving":false,"teraType":"Steel","terastallized":""},{"ident":"p2: Tyranitar","details":"Tyranitar, L78, F","condition":"0 fnt","active":false,"stats":{"atk":254,"def":217,"spa":193,"spd":201,"spe":140},"moves":["knockoff","icepunch","stoneedge","dragondance"],"baseAbility":"sandstream","item":"weaknesspolicy","pokeball":"pokeball","ability":"sandstream","commanding":false,"reviving":false,"teraType":"Ghost","terastallized":""}]},"rqid":11}
+|init|battle
+|title|anonop vs. cool213
+|j|☆anonop
+|j|☆cool213
+|t:|1793521112
+|gametype|singles
+|player|p1|anonop|102|
+|player|p2|cool213|101|
+|gen|9
+|tier|[Gen 9] Random Battle
+|rule|Species Clause: Limit one of each Pokemon
+|rule|HP Percentage Mod: HP is shown in percentages
+|rule|Sleep Clause Mod: Limit one foe put to sleep
+|rule|Illusion Level Mod: Illusion disguises the Pokemon's true level
+|
+|t:|1793521112
+|teamsize|p1|6
+|teamsize|p2|6
+|start
+|switch|p1a: Deoxys|Deoxys-Attack, L72|100/100
+|switch|p2a: Tyranitar|Tyranitar, L78, F|100/100
+|-ability|p1a: Deoxys|Pressure
+|-weather|Sandstorm|[from] ability: Sand Stream|[of] p2a: Tyranitar
+|turn|1
+|
+|t:|1793521123
+|-terastallize|p1a: Deoxys|Fighting
+|move|p1a: Deoxys|Superpower|p2a: Tyranitar
+|-supereffective|p2a: Tyranitar
+|-damage|p2a: Tyranitar|0 fnt
+|-unboost|p1a: Deoxys|atk|1
+|-unboost|p1a: Deoxys|def|1
+|faint|p2a: Tyranitar
+|-damage|p1a: Deoxys|91/100|[from] item: Life Orb
+|
+|-weather|Sandstorm|[upkeep]
+|-damage|p1a: Deoxys|85/100|[from] Sandstorm
+|upkeep
+|
+|t:|1793521128
+|switch|p2a: Articuno|Articuno, L86|100/100
+|-ability|p2a: Articuno|Pressure
+|turn|2
+|
+|t:|1793521134
+|move|p1a: Deoxys|Superpower|p2a: Articuno
+|-damage|p2a: Articuno|59/100
+|-unboost|p1a: Deoxys|atk|1
+|-unboost|p1a: Deoxys|def|1
+|-damage|p1a: Deoxys|75/100|[from] item: Life Orb
+|move|p2a: Articuno|Brave Bird|p1a: Deoxys
+|-supereffective|p1a: Deoxys
+|-damage|p1a: Deoxys|0 fnt
+|faint|p1a: Deoxys
+|-damage|p2a: Articuno|43/100|[from] Recoil
+|
+|-weather|Sandstorm|[upkeep]
+|-damage|p2a: Articuno|37/100|[from] Sandstorm
+|upkeep
+|
+|t:|1793521139
+|switch|p1a: Iron Crown|Iron Crown, L78|100/100
+|turn|3
+|l|☆cool213
+|player|p2|
+|j|☆cool213
+|player|p2|cool213|101|
+|l|☆cool213
+|player|p2|
+|player|p2|
+|j|☆cool213
+|request|{"active":[{"moves":[{"move":"Roost","id":"roost","pp":8,"maxpp":8,"target":"self","disabled":false},{"move":"Freeze-Dry","id":"freezedry","pp":32,"maxpp":32,"target":"normal","disabled":false},{"move":"Brave Bird","id":"bravebird","pp":22,"maxpp":24,"target":"any","disabled":false},{"move":"Substitute","id":"substitute","pp":16,"maxpp":16,"target":"self","disabled":false}],"canTerastallize":"Steel"}],"side":{"name":"cool213","id":"p2","pokemon":[{"ident":"p2: Articuno","details":"Articuno, L86","condition":"108/295","active":true,"stats":{"atk":195,"def":221,"spa":213,"spd":264,"spe":195},"moves":["roost","freezedry","bravebird","substitute"],"baseAbility":"pressure","item":"heavydutyboots","pokeball":"pokeball","ability":"pressure","commanding":false,"reviving":false,"teraType":"Steel","terastallized":""},{"ident":"p2: Virizion","details":"Virizion, L82","condition":"283/283","active":false,"stats":{"atk":195,"def":165,"spa":195,"spd":259,"spe":224},"moves":["closecombat","swordsdance","leafblade","stoneedge"],"baseAbility":"justified","item":"lifeorb","pokeball":"pokeball","ability":"justified","commanding":false,"reviving":false,"teraType":"Rock","terastallized":""},{"ident":"p2: Terapagos","details":"Terapagos, L77, F","condition":"265/265","active":false,"stats":{"atk":145,"def":175,"spa":145,"spd":175,"spe":137},"moves":["darkpulse","calmmind","rapidspin","terastarstorm"],"baseAbility":"terashift","item":"heavydutyboots","pokeball":"pokeball","ability":"terashift","commanding":false,"reviving":false,"teraType":"Stellar","terastallized":""},{"ident":"p2: Phione","details":"Phione, L91","condition":"293/293","active":false,"stats":{"atk":150,"def":197,"spa":197,"spd":197,"spe":197},"moves":["sleeptalk","rest","scald","takeheart"],"baseAbility":"hydration","item":"leftovers","pokeball":"pokeball","ability":"hydration","commanding":false,"reviving":false,"teraType":"Dragon","terastallized":""},{"ident":"p2: Minior","details":"Minior-Orange, L79","condition":"224/224","active":false,"stats":{"atk":204,"def":140,"spa":204,"spd":140,"spe":235},"moves":["powergem","acrobatics","shellsmash","earthquake"],"baseAbility":"shieldsdown","item":"whiteherb","pokeball":"pokeball","ability":"shieldsdown","commanding":false,"reviving":false,"teraType":"Steel","terastallized":""},{"ident":"p2: Tyranitar","details":"Tyranitar, L78, F","condition":"0 fnt","active":false,"stats":{"atk":254,"def":217,"spa":193,"spd":201,"spe":140},"moves":["knockoff","icepunch","stoneedge","dragondance"],"baseAbility":"sandstream","item":"weaknesspolicy","pokeball":"pokeball","ability":"sandstream","commanding":false,"reviving":false,"teraType":"Ghost","terastallized":""}]},"rqid":11}
+|init|battle
+|title|anonop vs. cool213
+|j|☆anonop
+|j|☆cool213
+|t:|1793521112
+|gametype|singles
+|player|p1|anonop|102|
+|player|p2|cool213|101|
+|gen|9
+|tier|[Gen 9] Random Battle
+|rule|Species Clause: Limit one of each Pokemon
+|rule|HP Percentage Mod: HP is shown in percentages
+|rule|Sleep Clause Mod: Limit one foe put to sleep
+|rule|Illusion Level Mod: Illusion disguises the Pokemon's true level
+|
+|t:|1793521112
+|teamsize|p1|6
+|teamsize|p2|6
+|start
+|switch|p1a: Deoxys|Deoxys-Attack, L72|100/100
+|switch|p2a: Tyranitar|Tyranitar, L78, F|100/100
+|-ability|p1a: Deoxys|Pressure
+|-weather|Sandstorm|[from] ability: Sand Stream|[of] p2a: Tyranitar
+|turn|1
+|
+|t:|1793521123
+|-terastallize|p1a: Deoxys|Fighting
+|move|p1a: Deoxys|Superpower|p2a: Tyranitar
+|-supereffective|p2a: Tyranitar
+|-damage|p2a: Tyranitar|0 fnt
+|-unboost|p1a: Deoxys|atk|1
+|-unboost|p1a: Deoxys|def|1
+|faint|p2a: Tyranitar
+|-damage|p1a: Deoxys|91/100|[from] item: Life Orb
+|
+|-weather|Sandstorm|[upkeep]
+|-damage|p1a: Deoxys|85/100|[from] Sandstorm
+|upkeep
+|
+|t:|1793521128
+|switch|p2a: Articuno|Articuno, L86|100/100
+|-ability|p2a: Articuno|Pressure
+|turn|2
+|
+|t:|1793521134
+|move|p1a: Deoxys|Superpower|p2a: Articuno
+|-damage|p2a: Articuno|59/100
+|-unboost|p1a: Deoxys|atk|1
+|-unboost|p1a: Deoxys|def|1
+|-damage|p1a: Deoxys|75/100|[from] item: Life Orb
+|move|p2a: Articuno|Brave Bird|p1a: Deoxys
+|-supereffective|p1a: Deoxys
+|-damage|p1a: Deoxys|0 fnt
+|faint|p1a: Deoxys
+|-damage|p2a: Articuno|43/100|[from] Recoil
+|
+|-weather|Sandstorm|[upkeep]
+|-damage|p2a: Articuno|37/100|[from] Sandstorm
+|upkeep
+|
+|t:|1793521139
+|switch|p1a: Iron Crown|Iron Crown, L78|100/100
+|turn|3
+|l|☆cool213
+|player|p2|
+|j|☆cool213
+|player|p2|cool213|101|
+|l|☆cool213
+|player|p2|
+|j|☆cool213
+|player|p2|cool213|101|
+|l|☆cool213
+|player|p2|
+|player|p2|
+|j|☆cool213
+|request|{"active":[{"moves":[{"move":"Roost","id":"roost","pp":8,"maxpp":8,"target":"self","disabled":false},{"move":"Freeze-Dry","id":"freezedry","pp":32,"maxpp":32,"target":"normal","disabled":false},{"move":"Brave Bird","id":"bravebird","pp":22,"maxpp":24,"target":"any","disabled":false},{"move":"Substitute","id":"substitute","pp":16,"maxpp":16,"target":"self","disabled":false}],"canTerastallize":"Steel"}],"side":{"name":"cool213","id":"p2","pokemon":[{"ident":"p2: Articuno","details":"Articuno, L86","condition":"108/295","active":true,"stats":{"atk":195,"def":221,"spa":213,"spd":264,"spe":195},"moves":["roost","freezedry","bravebird","substitute"],"baseAbility":"pressure","item":"heavydutyboots","pokeball":"pokeball","ability":"pressure","commanding":false,"reviving":false,"teraType":"Steel","terastallized":""},{"ident":"p2: Virizion","details":"Virizion, L82","condition":"283/283","active":false,"stats":{"atk":195,"def":165,"spa":195,"spd":259,"spe":224},"moves":["closecombat","swordsdance","leafblade","stoneedge"],"baseAbility":"justified","item":"lifeorb","pokeball":"pokeball","ability":"justified","commanding":false,"reviving":false,"teraType":"Rock","terastallized":""},{"ident":"p2: Terapagos","details":"Terapagos, L77, F","condition":"265/265","active":false,"stats":{"atk":145,"def":175,"spa":145,"spd":175,"spe":137},"moves":["darkpulse","calmmind","rapidspin","terastarstorm"],"baseAbility":"terashift","item":"heavydutyboots","pokeball":"pokeball","ability":"terashift","commanding":false,"reviving":false,"teraType":"Stellar","terastallized":""},{"ident":"p2: Phione","details":"Phione, L91","condition":"293/293","active":false,"stats":{"atk":150,"def":197,"spa":197,"spd":197,"spe":197},"moves":["sleeptalk","rest","scald","takeheart"],"baseAbility":"hydration","item":"leftovers","pokeball":"pokeball","ability":"hydration","commanding":false,"reviving":false,"teraType":"Dragon","terastallized":""},{"ident":"p2: Minior","details":"Minior-Orange, L79","condition":"224/224","active":false,"stats":{"atk":204,"def":140,"spa":204,"spd":140,"spe":235},"moves":["powergem","acrobatics","shellsmash","earthquake"],"baseAbility":"shieldsdown","item":"whiteherb","pokeball":"pokeball","ability":"shieldsdown","commanding":false,"reviving":false,"teraType":"Steel","terastallized":""},{"ident":"p2: Tyranitar","details":"Tyranitar, L78, F","condition":"0 fnt","active":false,"stats":{"atk":254,"def":217,"spa":193,"spd":201,"spe":140},"moves":["knockoff","icepunch","stoneedge","dragondance"],"baseAbility":"sandstream","item":"weaknesspolicy","pokeball":"pokeball","ability":"sandstream","commanding":false,"reviving":false,"teraType":"Ghost","terastallized":""}]},"rqid":11}
+|init|battle
+|title|anonop vs. cool213
+|j|☆anonop
+|j|☆cool213
+|t:|1793521112
+|gametype|singles
+|player|p1|anonop|102|
+|player|p2|cool213|101|
+|gen|9
+|tier|[Gen 9] Random Battle
+|rule|Species Clause: Limit one of each Pokemon
+|rule|HP Percentage Mod: HP is shown in percentages
+|rule|Sleep Clause Mod: Limit one foe put to sleep
+|rule|Illusion Level Mod: Illusion disguises the Pokemon's true level
+|
+|t:|1793521112
+|teamsize|p1|6
+|teamsize|p2|6
+|start
+|switch|p1a: Deoxys|Deoxys-Attack, L72|100/100
+|switch|p2a: Tyranitar|Tyranitar, L78, F|100/100
+|-ability|p1a: Deoxys|Pressure
+|-weather|Sandstorm|[from] ability: Sand Stream|[of] p2a: Tyranitar
+|turn|1
+|
+|t:|1793521123
+|-terastallize|p1a: Deoxys|Fighting
+|move|p1a: Deoxys|Superpower|p2a: Tyranitar
+|-supereffective|p2a: Tyranitar
+|-damage|p2a: Tyranitar|0 fnt
+|-unboost|p1a: Deoxys|atk|1
+|-unboost|p1a: Deoxys|def|1
+|faint|p2a: Tyranitar
+|-damage|p1a: Deoxys|91/100|[from] item: Life Orb
+|
+|-weather|Sandstorm|[upkeep]
+|-damage|p1a: Deoxys|85/100|[from] Sandstorm
+|upkeep
+|
+|t:|1793521128
+|switch|p2a: Articuno|Articuno, L86|100/100
+|-ability|p2a: Articuno|Pressure
+|turn|2
+|
+|t:|1793521134
+|move|p1a: Deoxys|Superpower|p2a: Articuno
+|-damage|p2a: Articuno|59/100
+|-unboost|p1a: Deoxys|atk|1
+|-unboost|p1a: Deoxys|def|1
+|-damage|p1a: Deoxys|75/100|[from] item: Life Orb
+|move|p2a: Articuno|Brave Bird|p1a: Deoxys
+|-supereffective|p1a: Deoxys
+|-damage|p1a: Deoxys|0 fnt
+|faint|p1a: Deoxys
+|-damage|p2a: Articuno|43/100|[from] Recoil
+|
+|-weather|Sandstorm|[upkeep]
+|-damage|p2a: Articuno|37/100|[from] Sandstorm
+|upkeep
+|
+|t:|1793521139
+|switch|p1a: Iron Crown|Iron Crown, L78|100/100
+|turn|3
+|l|☆cool213
+|player|p2|
+|j|☆cool213
+|player|p2|cool213|101|
+|l|☆cool213
+|player|p2|
+|j|☆cool213
+|player|p2|cool213|101|
+|l|☆cool213
+|player|p2|
+|j|☆cool213
+|player|p2|cool213|101|
+|l|☆cool213
+|player|p2|
+|player|p2|
+|j|☆cool213
+|request|{"active":[{"moves":[{"move":"Roost","id":"roost","pp":8,"maxpp":8,"target":"self","disabled":false},{"move":"Freeze-Dry","id":"freezedry","pp":32,"maxpp":32,"target":"normal","disabled":false},{"move":"Brave Bird","id":"bravebird","pp":22,"maxpp":24,"target":"any","disabled":false},{"move":"Substitute","id":"substitute","pp":16,"maxpp":16,"target":"self","disabled":false}],"canTerastallize":"Steel"}],"side":{"name":"cool213","id":"p2","pokemon":[{"ident":"p2: Articuno","details":"Articuno, L86","condition":"108/295","active":true,"stats":{"atk":195,"def":221,"spa":213,"spd":264,"spe":195},"moves":["roost","freezedry","bravebird","substitute"],"baseAbility":"pressure","item":"heavydutyboots","pokeball":"pokeball","ability":"pressure","commanding":false,"reviving":false,"teraType":"Steel","terastallized":""},{"ident":"p2: Virizion","details":"Virizion, L82","condition":"283/283","active":false,"stats":{"atk":195,"def":165,"spa":195,"spd":259,"spe":224},"moves":["closecombat","swordsdance","leafblade","stoneedge"],"baseAbility":"justified","item":"lifeorb","pokeball":"pokeball","ability":"justified","commanding":false,"reviving":false,"teraType":"Rock","terastallized":""},{"ident":"p2: Terapagos","details":"Terapagos, L77, F","condition":"265/265","active":false,"stats":{"atk":145,"def":175,"spa":145,"spd":175,"spe":137},"moves":["darkpulse","calmmind","rapidspin","terastarstorm"],"baseAbility":"terashift","item":"heavydutyboots","pokeball":"pokeball","ability":"terashift","commanding":false,"reviving":false,"teraType":"Stellar","terastallized":""},{"ident":"p2: Phione","details":"Phione, L91","condition":"293/293","active":false,"stats":{"atk":150,"def":197,"spa":197,"spd":197,"spe":197},"moves":["sleeptalk","rest","scald","takeheart"],"baseAbility":"hydration","item":"leftovers","pokeball":"pokeball","ability":"hydration","commanding":false,"reviving":false,"teraType":"Dragon","terastallized":""},{"ident":"p2: Minior","details":"Minior-Orange, L79","condition":"224/224","active":false,"stats":{"atk":204,"def":140,"spa":204,"spd":140,"spe":235},"moves":["powergem","acrobatics","shellsmash","earthquake"],"baseAbility":"shieldsdown","item":"whiteherb","pokeball":"pokeball","ability":"shieldsdown","commanding":false,"reviving":false,"teraType":"Steel","terastallized":""},{"ident":"p2: Tyranitar","details":"Tyranitar, L78, F","condition":"0 fnt","active":false,"stats":{"atk":254,"def":217,"spa":193,"spd":201,"spe":140},"moves":["knockoff","icepunch","stoneedge","dragondance"],"baseAbility":"sandstream","item":"weaknesspolicy","pokeball":"pokeball","ability":"sandstream","commanding":false,"reviving":false,"teraType":"Ghost","terastallized":""}]},"rqid":11}
+|player|p2|cool213|101|
+|-message|anonop forfeited.
+|
+|win|cool213
+|l|☆anonop
+|player|p1|
+|deinit

@@ -6,16 +6,18 @@
 
 const { app, BaseWindow, WebContentsView, Menu, shell } = require('electron');
 const path = require('path');
-const fs = require('fs');
+const { attachBattleCapture } = require('./capture');
+const { initLogs, getLogDir, writeLines } = require('./logs');
 
 const SHOWDOWN_URL = 'https://play.pokemonshowdown.com';
 const PANEL_WIDTH = 360;
+const RENDERER_DIR = path.join(__dirname, '..', 'renderer');
 
 let win;
 let showdownView;
 let panelView;
 let panelVisible = true;
-let logDir; // <userData>/battle-logs, set once the app is ready
+let reloadingOnPurpose = false; // true only while our "Reload Showdown" menu item runs
 
 // ---------------------------------------------------------------------------
 // Window + views (R1, R3)
@@ -23,7 +25,7 @@ let logDir; // <userData>/battle-logs, set once the app is ready
 
 function createWindow() {
   // BaseWindow is just an empty frame. The content comes from the two views below.
-  win = new BaseWindow({ width: 1400, height: 900, minWidth: 700, minHeight: 400, title: 'Showdown Coach (spike)' });
+  win = new BaseWindow({ width: 1400, height: 900, minWidth: 700, minHeight: 400, title: 'Showdown Coach' });
 
   // Same three security settings on every view. contextIsolation + sandbox keep a web
   // page from reaching Node; nodeIntegration:false would block require() in the page.
@@ -44,7 +46,7 @@ function createWindow() {
       // The preload runs before the panel page, in a safe bridge context. With
       // sandbox:true it may only use a small set of Electron modules (contextBridge,
       // ipcRenderer), which is all it needs.
-      preload: path.join(__dirname, 'panel-preload.js'),
+      preload: path.join(RENDERER_DIR, 'panel-preload.js'),
     },
   });
 
@@ -59,15 +61,31 @@ function createWindow() {
   });
   panelView.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
 
+  // While you are in a battle, Showdown's page blocks leaving ("beforeunload"). A browser
+  // turns that into a prompt, but Electron silently cancels the navigation, so a reload
+  // just does nothing. Calling preventDefault() here means "ignore the page's objection
+  // and go ahead". Only done for our own reload, so closing the window or other
+  // navigations still respect the page.
+  showdownView.webContents.on('will-prevent-unload', (event) => {
+    console.log(`[reload] page tried to block unload (override ${reloadingOnPurpose ? 'ON: reloading anyway' : 'OFF: staying'})`);
+    if (reloadingOnPurpose) event.preventDefault();
+  });
+
   logLoadProblems(showdownView.webContents, 'showdown');
   logLoadProblems(panelView.webContents, 'panel');
 
   // Attach the debugger BEFORE loading the page so we cannot miss the WebSocket
   // being created.
-  attachBattleCapture(showdownView.webContents);
+  attachBattleCapture(showdownView.webContents, (room, lines) => {
+    const { fresh } = writeLines(room, lines);
+    // A fresh log means a new battle or a replay of one, so the panel must drop what it
+    // is showing before the new lines arrive.
+    if (fresh) sendResetToPanel(room);
+    sendToPanel(room, lines);
+  });
 
   showdownView.webContents.loadURL(SHOWDOWN_URL);
-  panelView.webContents.loadFile(path.join(__dirname, 'panel.html'));
+  panelView.webContents.loadFile(path.join(RENDERER_DIR, 'panel.html'));
 
   // Re-layout whenever the window size or state changes.
   for (const evt of ['resize', 'maximize', 'unmaximize', 'enter-full-screen', 'leave-full-screen']) {
@@ -95,6 +113,18 @@ function togglePanel() {
   layoutViews();
 }
 
+let reloadFlagTimer;
+function reloadShowdown() {
+  console.log('[reload] Reload Showdown requested');
+  reloadingOnPurpose = true;
+  // Switch the flag off after a moment instead of on the first "did-start-loading": I
+  // could not rely on that event firing AFTER the page's unload check, and if it fires
+  // first the override is gone and the reload is silently blocked again.
+  clearTimeout(reloadFlagTimer);
+  reloadFlagTimer = setTimeout(() => { reloadingOnPurpose = false; }, 3000);
+  showdownView.webContents.reload();
+}
+
 // R1: make a blank page diagnosable by printing why it failed.
 function logLoadProblems(webContents, name) {
   webContents.on('did-fail-load', (_e, errorCode, errorDescription, validatedURL, isMainFrame) => {
@@ -105,116 +135,9 @@ function logLoadProblems(webContents, name) {
   });
 }
 
-// ---------------------------------------------------------------------------
-// Battle capture via the Chrome DevTools Protocol (R5)
-// ---------------------------------------------------------------------------
-// Why the debugger and not a script injected into the page: the page's own JS owns the
-// WebSocket, and we do not want to modify Showdown. CDP lets us watch network frames
-// from the outside.
-
-// Turns one raw WebSocket payload into [{ room, lines }]. Pure function: no Electron,
-// no files. Showdown uses SockJS framing: "a" + JSON array of message strings.
-function decodeFrame(payload) {
-  let messages;
-  if (payload.startsWith('a[')) {
-    try {
-      messages = JSON.parse(payload.slice(1));
-    } catch {
-      messages = [payload]; // looked like SockJS but was not valid JSON: keep as plain text
-    }
-  } else {
-    messages = [payload];
-  }
-
-  const out = [];
-  for (const msg of messages) {
-    if (typeof msg !== 'string') continue;
-    const lines = msg.split('\n');
-    // A room message starts with ">roomid". Messages without it are global (login, etc.).
-    if (!lines[0].startsWith('>')) continue;
-    const room = lines.shift().slice(1).trim();
-    if (!room.startsWith('battle-')) continue;
-    out.push({ room, lines: lines.filter((l) => l !== '') });
-  }
-  return out;
-}
-
-function attachBattleCapture(webContents) {
-  const seenSockets = new Set();
-  const seenRooms = new Set();
-  let rawFramesLogged = 0;
-
-  // Network.enable is safe to send more than once. We send it now and again once the
-  // page's DOM exists, in case the first one is lost while the renderer is still starting.
-  const enableNetwork = (when) => {
-    if (!webContents.debugger.isAttached()) return;
-    webContents.debugger.sendCommand('Network.enable').then(
-      () => console.log(`[capture] Network.enable ok (${when})`),
-      (err) => console.error(`[capture] Network.enable failed (${when}):`, err.message),
-    );
-  };
-
-  try {
-    webContents.debugger.attach('1.3');
-    console.log('[capture] debugger attached to Showdown view');
-    enableNetwork('at attach');
-    webContents.on('dom-ready', () => enableNetwork('dom-ready'));
-  } catch (err) {
-    console.error('[capture] FAILED to attach debugger:', err.message);
-    return;
-  }
-
-  // Fires if the debugger is kicked off, e.g. when you open DevTools on this view.
-  // Not re-attached on purpose, so the failure is visible instead of hidden.
-  webContents.debugger.on('detach', (_e, reason) => {
-    // "target closed" is just the normal sound of the window closing; anything else
-    // (e.g. "replaced with devtools") means capture really stopped mid-session.
-    if (reason === 'target closed') {
-      console.log('[capture] debugger detached (window closing)');
-    } else {
-      console.error(`[capture] debugger DETACHED (reason: ${reason}). Battle capture is now OFF until restart.`);
-    }
-  });
-
-  webContents.debugger.on('message', (_e, method, params) => {
-    try {
-      if (method === 'Network.webSocketCreated') {
-        if (!seenSockets.has(params.url)) {
-          seenSockets.add(params.url);
-          console.log('[capture] WebSocket created:', params.url);
-        }
-        return;
-      }
-      if (method !== 'Network.webSocketFrameReceived') return;
-
-      const payload = params.response.payloadData;
-
-      // Show the first few raw frames untouched so we can see the real format.
-      if (rawFramesLogged < 5) {
-        rawFramesLogged++;
-        console.log(`[capture] raw frame #${rawFramesLogged}:`, JSON.stringify(payload.slice(0, 300)));
-      }
-
-      for (const { room, lines } of decodeFrame(payload)) {
-        if (lines.length === 0) continue;
-        if (!seenRooms.has(room)) {
-          seenRooms.add(room);
-          console.log('[capture] new battle room:', room);
-        }
-        writeLines(room, lines);
-        sendToPanel(room, lines);
-      }
-    } catch (err) {
-      console.error('[capture] error handling a frame:', err);
-    }
-  });
-}
-
-function writeLines(room, lines) {
-  // The room id comes from a remote server, so never trust it as a file name:
-  // strip anything except letters, digits, "-" and "_" (blocks "../" tricks).
-  const safe = room.replace(/[^A-Za-z0-9_-]/g, '_');
-  fs.appendFileSync(path.join(logDir, `${safe}.log`), lines.join('\n') + '\n');
+function sendResetToPanel(room) {
+  if (!panelView || panelView.webContents.isDestroyed()) return;
+  panelView.webContents.send('battle-reset', { room });
 }
 
 // One IPC message per line. panel-preload.js receives it and hands it to the page.
@@ -242,7 +165,7 @@ function buildMenu() {
     // need when typing a password into Showdown, so add the standard Edit menu back.
     { role: 'editMenu' },
     {
-      label: 'Spike',
+      label: 'Dev',
       submenu: [
         {
           label: 'Toggle panel',
@@ -251,6 +174,15 @@ function buildMenu() {
           accelerator: 'CommandOrControl+Shift+K',
           click: togglePanel,
         },
+        {
+          // Custom menu removed the default reload shortcut, and role:'reload' would
+          // target the focused window's main web contents, not our WebContentsView.
+          // Note: reloading makes Showdown replay the room history, which is why task 2
+          // (fresh log file on |init|battle) matters.
+          label: 'Reload Showdown',
+          accelerator: 'CommandOrControl+R',
+          click: reloadShowdown,
+        },
         { type: 'separator' },
         // mode:'detach' because DevTools cannot dock inside a view of a BaseWindow.
         // Opening DevTools on the Showdown view will detach the capture debugger.
@@ -258,7 +190,7 @@ function buildMenu() {
         { label: 'Open DevTools for panel view', click: () => panelView.webContents.openDevTools({ mode: 'detach' }) },
         { type: 'separator' },
         { label: 'Print storage location', click: printStorageLocation },
-        { label: 'Open battle-logs folder', click: () => shell.openPath(logDir) },
+        { label: 'Open battle-logs folder', click: () => shell.openPath(getLogDir()) },
       ],
     },
   ];
@@ -270,9 +202,7 @@ function buildMenu() {
 // ---------------------------------------------------------------------------
 
 app.whenReady().then(() => {
-  logDir = path.join(app.getPath('userData'), 'battle-logs');
-  fs.mkdirSync(logDir, { recursive: true });
-  console.log('[startup] battle logs folder:', logDir);
+  console.log('[startup] battle logs folder:', initLogs(app.getPath('userData')));
 
   createWindow();
   buildMenu();

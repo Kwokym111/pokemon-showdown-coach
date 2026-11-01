@@ -1,0 +1,153 @@
+|init|battle
+|title|cool213 vs. anonop
+|j|☆cool213
+|j|☆anonop
+|t:|1793520911
+|gametype|singles
+|player|p1|cool213|101|
+|player|p2|anonop|102|
+|gen|9
+|tier|[Gen 9] Random Battle
+|rule|Species Clause: Limit one of each Pokemon
+|rule|HP Percentage Mod: HP is shown in percentages
+|rule|Sleep Clause Mod: Limit one foe put to sleep
+|rule|Illusion Level Mod: Illusion disguises the Pokemon's true level
+|
+|t:|1793520911
+|teamsize|p1|6
+|teamsize|p2|6
+|start
+|switch|p1a: Zarude|Zarude, L77|288/288
+|switch|p2a: Tentacruel|Tentacruel, L84, F|100/100
+|turn|1
+|request|{"active":[{"moves":[{"move":"Knock Off","id":"knockoff","pp":32,"maxpp":32,"target":"normal","disabled":false},{"move":"Close Combat","id":"closecombat","pp":8,"maxpp":8,"target":"normal","disabled":false},{"move":"Power Whip","id":"powerwhip","pp":16,"maxpp":16,"target":"normal","disabled":false},{"move":"Swords Dance","id":"swordsdance","pp":32,"maxpp":32,"target":"self","disabled":false}],"canTerastallize":"Dark"}],"side":{"name":"cool213","id":"p1","pokemon":[{"ident":"p1: Zarude","details":"Zarude, L77","condition":"288/288","active":true,"stats":{"atk":229,"def":206,"spa":152,"spd":191,"spe":206},"moves":["knockoff","closecombat","powerwhip","swordsdance"],"baseAbility":"leafguard","item":"lifeorb","pokeball":"pokeball","ability":"leafguard","commanding":false,"reviving":false,"teraType":"Dark","terastallized":""},{"ident":"p1: Lapras","details":"Lapras, L87, M","condition":"367/367","active":false,"stats":{"atk":198,"def":189,"spa":198,"spd":215,"spe":154},"moves":["iciclespear","dragondance","earthquake","waterfall"],"baseAbility":"waterabsorb","item":"loadeddice","pokeball":"pokeball","ability":"waterabsorb","commanding":false,"reviving":false,"teraType":"Ground","terastallized":""},{"ident":"p1: Keldeo","details":"Keldeo-Resolute, L79","condition":"273/273","active":false,"stats":{"atk":118,"def":188,"spa":249,"spd":188,"spe":216},"moves":["vacuumwave","secretsword","hydropump","airslash"],"baseAbility":"justified","item":"choicespecs","pokeball":"pokeball","ability":"justified","commanding":false,"reviving":false,"teraType":"Water","terastallized":""},{"ident":"p1: Hitmontop","details":"Hitmontop, L88, M","condition":"231/231","active":false,"stats":{"atk":217,"def":217,"spa":112,"spd":244,"spe":173},"moves":["earthquake","rapidspin","stoneedge","closecombat"],"baseAbility":"intimidate","item":"assaultvest","pokeball":"pokeball","ability":"intimidate","commanding":false,"reviving":false,"teraType":"Steel","terastallized":""},{"ident":"p1: Gholdengo","details":"Gholdengo, L77","condition":"261/261","active":false,"stats":{"atk":97,"def":191,"spa":249,"spd":185,"spe":174},"moves":["focusblast","nastyplot","makeitrain","shadowball"],"baseAbility":"goodasgold","item":"leftovers","pokeball":"pokeball","ability":"goodasgold","commanding":false,"reviving":false,"teraType":"Ghost","terastallized":""},{"ident":"p1: Minior","details":"Minior-Indigo, L79","condition":"224/224","active":false,"stats":{"atk":204,"def":140,"spa":204,"spd":140,"spe":235},"moves":["powergem","shellsmash","earthquake","acrobatics"],"baseAbility":"shieldsdown","item":"whiteherb","pokeball":"pokeball","ability":"shieldsdown","commanding":false,"reviving":false,"teraType":"Ground","terastallized":""}]},"rqid":2}
+|
+|t:|1793520918
+|-terastallize|p1a: Zarude|Dark
+|move|p2a: Tentacruel|Surf|p1a: Zarude
+|-damage|p1a: Zarude|206/288
+|move|p1a: Zarude|Swords Dance|p1a: Zarude
+|-boost|p1a: Zarude|atk|2
+|
+|upkeep
+|turn|2
+|request|{"active":[{"moves":[{"move":"Knock Off","id":"knockoff","pp":32,"maxpp":32,"target":"normal","disabled":false},{"move":"Close Combat","id":"closecombat","pp":8,"maxpp":8,"target":"normal","disabled":false},{"move":"Power Whip","id":"powerwhip","pp":16,"maxpp":16,"target":"normal","disabled":false},{"move":"Swords Dance","id":"swordsdance","pp":31,"maxpp":32,"target":"self","disabled":false}]}],"side":{"name":"cool213","id":"p1","pokemon":[{"ident":"p1: Zarude","details":"Zarude, L77","condition":"206/288","active":true,"stats":{"atk":229,"def":206,"spa":152,"spd":191,"spe":206},"moves":["knockoff","closecombat","powerwhip","swordsdance"],"baseAbility":"leafguard","item":"lifeorb","pokeball":"pokeball","ability":"leafguard","commanding":false,"reviving":false,"teraType":"Dark","terastallized":"Dark"},{"ident":"p1: Lapras","details":"Lapras, L87, M","condition":"367/367","active":false,"stats":{"atk":198,"def":189,"spa":198,"spd":215,"spe":154},"moves":["iciclespear","dragondance","earthquake","waterfall"],"baseAbility":"waterabsorb","item":"loadeddice","pokeball":"pokeball","ability":"waterabsorb","commanding":false,"reviving":false,"teraType":"Ground","terastallized":""},{"ident":"p1: Keldeo","details":"Keldeo-Resolute, L79","condition":"273/273","active":false,"stats":{"atk":118,"def":188,"spa":249,"spd":188,"spe":216},"moves":["vacuumwave","secretsword","hydropump","airslash"],"baseAbility":"justified","item":"choicespecs","pokeball":"pokeball","ability":"justified","commanding":false,"reviving":false,"teraType":"Water","terastallized":""},{"ident":"p1: Hitmontop","details":"Hitmontop, L88, M","condition":"231/231","active":false,"stats":{"atk":217,"def":217,"spa":112,"spd":244,"spe":173},"moves":["earthquake","rapidspin","stoneedge","closecombat"],"baseAbility":"intimidate","item":"assaultvest","pokeball":"pokeball","ability":"intimidate","commanding":false,"reviving":false,"teraType":"Steel","terastallized":""},{"ident":"p1: Gholdengo","details":"Gholdengo, L77","condition":"261/261","active":false,"stats":{"atk":97,"def":191,"spa":249,"spd":185,"spe":174},"moves":["focusblast","nastyplot","makeitrain","shadowball"],"baseAbility":"goodasgold","item":"leftovers","pokeball":"pokeball","ability":"goodasgold","commanding":false,"reviving":false,"teraType":"Ghost","terastallized":""},{"ident":"p1: Minior","details":"Minior-Indigo, L79","condition":"224/224","active":false,"stats":{"atk":204,"def":140,"spa":204,"spd":140,"spe":235},"moves":["powergem","shellsmash","earthquake","acrobatics"],"baseAbility":"shieldsdown","item":"whiteherb","pokeball":"pokeball","ability":"shieldsdown","commanding":false,"reviving":false,"teraType":"Ground","terastallized":""}]},"rqid":4}
+|
+|t:|1793520924
+|move|p2a: Tentacruel|Haze|p2a: Tentacruel
+|-clearallboost
+|move|p1a: Zarude|Swords Dance|p1a: Zarude
+|-boost|p1a: Zarude|atk|2
+|
+|upkeep
+|turn|3
+|request|{"active":[{"moves":[{"move":"Knock Off","id":"knockoff","pp":32,"maxpp":32,"target":"normal","disabled":false},{"move":"Close Combat","id":"closecombat","pp":8,"maxpp":8,"target":"normal","disabled":false},{"move":"Power Whip","id":"powerwhip","pp":16,"maxpp":16,"target":"normal","disabled":false},{"move":"Swords Dance","id":"swordsdance","pp":30,"maxpp":32,"target":"self","disabled":false}]}],"side":{"name":"cool213","id":"p1","pokemon":[{"ident":"p1: Zarude","details":"Zarude, L77","condition":"206/288","active":true,"stats":{"atk":229,"def":206,"spa":152,"spd":191,"spe":206},"moves":["knockoff","closecombat","powerwhip","swordsdance"],"baseAbility":"leafguard","item":"lifeorb","pokeball":"pokeball","ability":"leafguard","commanding":false,"reviving":false,"teraType":"Dark","terastallized":"Dark"},{"ident":"p1: Lapras","details":"Lapras, L87, M","condition":"367/367","active":false,"stats":{"atk":198,"def":189,"spa":198,"spd":215,"spe":154},"moves":["iciclespear","dragondance","earthquake","waterfall"],"baseAbility":"waterabsorb","item":"loadeddice","pokeball":"pokeball","ability":"waterabsorb","commanding":false,"reviving":false,"teraType":"Ground","terastallized":""},{"ident":"p1: Keldeo","details":"Keldeo-Resolute, L79","condition":"273/273","active":false,"stats":{"atk":118,"def":188,"spa":249,"spd":188,"spe":216},"moves":["vacuumwave","secretsword","hydropump","airslash"],"baseAbility":"justified","item":"choicespecs","pokeball":"pokeball","ability":"justified","commanding":false,"reviving":false,"teraType":"Water","terastallized":""},{"ident":"p1: Hitmontop","details":"Hitmontop, L88, M","condition":"231/231","active":false,"stats":{"atk":217,"def":217,"spa":112,"spd":244,"spe":173},"moves":["earthquake","rapidspin","stoneedge","closecombat"],"baseAbility":"intimidate","item":"assaultvest","pokeball":"pokeball","ability":"intimidate","commanding":false,"reviving":false,"teraType":"Steel","terastallized":""},{"ident":"p1: Gholdengo","details":"Gholdengo, L77","condition":"261/261","active":false,"stats":{"atk":97,"def":191,"spa":249,"spd":185,"spe":174},"moves":["focusblast","nastyplot","makeitrain","shadowball"],"baseAbility":"goodasgold","item":"leftovers","pokeball":"pokeball","ability":"goodasgold","commanding":false,"reviving":false,"teraType":"Ghost","terastallized":""},{"ident":"p1: Minior","details":"Minior-Indigo, L79","condition":"224/224","active":false,"stats":{"atk":204,"def":140,"spa":204,"spd":140,"spe":235},"moves":["powergem","shellsmash","earthquake","acrobatics"],"baseAbility":"shieldsdown","item":"whiteherb","pokeball":"pokeball","ability":"shieldsdown","commanding":false,"reviving":false,"teraType":"Ground","terastallized":""}]},"rqid":6}
+|
+|t:|1793520930
+|move|p2a: Tentacruel|Rapid Spin|p1a: Zarude
+|-damage|p1a: Zarude|179/288
+|-boost|p2a: Tentacruel|spe|1
+|move|p1a: Zarude|Knock Off|p2a: Tentacruel
+|-damage|p2a: Tentacruel|0 fnt
+|-enditem|p2a: Tentacruel|Leftovers|[from] move: Knock Off|[of] p1a: Zarude
+|faint|p2a: Tentacruel
+|-damage|p1a: Zarude|151/288|[from] item: Life Orb
+|
+|upkeep
+|request|{"wait":true,"side":{"name":"cool213","id":"p1","pokemon":[{"ident":"p1: Zarude","details":"Zarude, L77","condition":"151/288","active":true,"stats":{"atk":229,"def":206,"spa":152,"spd":191,"spe":206},"moves":["knockoff","closecombat","powerwhip","swordsdance"],"baseAbility":"leafguard","item":"lifeorb","pokeball":"pokeball","ability":"leafguard","commanding":false,"reviving":false,"teraType":"Dark","terastallized":"Dark"},{"ident":"p1: Lapras","details":"Lapras, L87, M","condition":"367/367","active":false,"stats":{"atk":198,"def":189,"spa":198,"spd":215,"spe":154},"moves":["iciclespear","dragondance","earthquake","waterfall"],"baseAbility":"waterabsorb","item":"loadeddice","pokeball":"pokeball","ability":"waterabsorb","commanding":false,"reviving":false,"teraType":"Ground","terastallized":""},{"ident":"p1: Keldeo","details":"Keldeo-Resolute, L79","condition":"273/273","active":false,"stats":{"atk":118,"def":188,"spa":249,"spd":188,"spe":216},"moves":["vacuumwave","secretsword","hydropump","airslash"],"baseAbility":"justified","item":"choicespecs","pokeball":"pokeball","ability":"justified","commanding":false,"reviving":false,"teraType":"Water","terastallized":""},{"ident":"p1: Hitmontop","details":"Hitmontop, L88, M","condition":"231/231","active":false,"stats":{"atk":217,"def":217,"spa":112,"spd":244,"spe":173},"moves":["earthquake","rapidspin","stoneedge","closecombat"],"baseAbility":"intimidate","item":"assaultvest","pokeball":"pokeball","ability":"intimidate","commanding":false,"reviving":false,"teraType":"Steel","terastallized":""},{"ident":"p1: Gholdengo","details":"Gholdengo, L77","condition":"261/261","active":false,"stats":{"atk":97,"def":191,"spa":249,"spd":185,"spe":174},"moves":["focusblast","nastyplot","makeitrain","shadowball"],"baseAbility":"goodasgold","item":"leftovers","pokeball":"pokeball","ability":"goodasgold","commanding":false,"reviving":false,"teraType":"Ghost","terastallized":""},{"ident":"p1: Minior","details":"Minior-Indigo, L79","condition":"224/224","active":false,"stats":{"atk":204,"def":140,"spa":204,"spd":140,"spe":235},"moves":["powergem","shellsmash","earthquake","acrobatics"],"baseAbility":"shieldsdown","item":"whiteherb","pokeball":"pokeball","ability":"shieldsdown","commanding":false,"reviving":false,"teraType":"Ground","terastallized":""}]},"rqid":8}
+|
+|t:|1793520934
+|switch|p2a: Entei|Entei, L78|100/100
+|turn|4
+|request|{"active":[{"moves":[{"move":"Knock Off","id":"knockoff","pp":31,"maxpp":32,"target":"normal","disabled":false},{"move":"Close Combat","id":"closecombat","pp":8,"maxpp":8,"target":"normal","disabled":false},{"move":"Power Whip","id":"powerwhip","pp":16,"maxpp":16,"target":"normal","disabled":false},{"move":"Swords Dance","id":"swordsdance","pp":30,"maxpp":32,"target":"self","disabled":false}]}],"side":{"name":"cool213","id":"p1","pokemon":[{"ident":"p1: Zarude","details":"Zarude, L77","condition":"151/288","active":true,"stats":{"atk":229,"def":206,"spa":152,"spd":191,"spe":206},"moves":["knockoff","closecombat","powerwhip","swordsdance"],"baseAbility":"leafguard","item":"lifeorb","pokeball":"pokeball","ability":"leafguard","commanding":false,"reviving":false,"teraType":"Dark","terastallized":"Dark"},{"ident":"p1: Lapras","details":"Lapras, L87, M","condition":"367/367","active":false,"stats":{"atk":198,"def":189,"spa":198,"spd":215,"spe":154},"moves":["iciclespear","dragondance","earthquake","waterfall"],"baseAbility":"waterabsorb","item":"loadeddice","pokeball":"pokeball","ability":"waterabsorb","commanding":false,"reviving":false,"teraType":"Ground","terastallized":""},{"ident":"p1: Keldeo","details":"Keldeo-Resolute, L79","condition":"273/273","active":false,"stats":{"atk":118,"def":188,"spa":249,"spd":188,"spe":216},"moves":["vacuumwave","secretsword","hydropump","airslash"],"baseAbility":"justified","item":"choicespecs","pokeball":"pokeball","ability":"justified","commanding":false,"reviving":false,"teraType":"Water","terastallized":""},{"ident":"p1: Hitmontop","details":"Hitmontop, L88, M","condition":"231/231","active":false,"stats":{"atk":217,"def":217,"spa":112,"spd":244,"spe":173},"moves":["earthquake","rapidspin","stoneedge","closecombat"],"baseAbility":"intimidate","item":"assaultvest","pokeball":"pokeball","ability":"intimidate","commanding":false,"reviving":false,"teraType":"Steel","terastallized":""},{"ident":"p1: Gholdengo","details":"Gholdengo, L77","condition":"261/261","active":false,"stats":{"atk":97,"def":191,"spa":249,"spd":185,"spe":174},"moves":["focusblast","nastyplot","makeitrain","shadowball"],"baseAbility":"goodasgold","item":"leftovers","pokeball":"pokeball","ability":"goodasgold","commanding":false,"reviving":false,"teraType":"Ghost","terastallized":""},{"ident":"p1: Minior","details":"Minior-Indigo, L79","condition":"224/224","active":false,"stats":{"atk":204,"def":140,"spa":204,"spd":140,"spe":235},"moves":["powergem","shellsmash","earthquake","acrobatics"],"baseAbility":"shieldsdown","item":"whiteherb","pokeball":"pokeball","ability":"shieldsdown","commanding":false,"reviving":false,"teraType":"Ground","terastallized":""}]},"rqid":10}
+|
+|t:|1793520941
+|-terastallize|p2a: Entei|Fire
+|move|p2a: Entei|Extreme Speed|p1a: Zarude
+|-damage|p1a: Zarude|71/288
+|move|p1a: Zarude|Swords Dance|p1a: Zarude
+|-boost|p1a: Zarude|atk|2
+|
+|upkeep
+|turn|5
+|request|{"active":[{"moves":[{"move":"Knock Off","id":"knockoff","pp":31,"maxpp":32,"target":"normal","disabled":false},{"move":"Close Combat","id":"closecombat","pp":8,"maxpp":8,"target":"normal","disabled":false},{"move":"Power Whip","id":"powerwhip","pp":16,"maxpp":16,"target":"normal","disabled":false},{"move":"Swords Dance","id":"swordsdance","pp":29,"maxpp":32,"target":"self","disabled":false}]}],"side":{"name":"cool213","id":"p1","pokemon":[{"ident":"p1: Zarude","details":"Zarude, L77","condition":"71/288","active":true,"stats":{"atk":229,"def":206,"spa":152,"spd":191,"spe":206},"moves":["knockoff","closecombat","powerwhip","swordsdance"],"baseAbility":"leafguard","item":"lifeorb","pokeball":"pokeball","ability":"leafguard","commanding":false,"reviving":false,"teraType":"Dark","terastallized":"Dark"},{"ident":"p1: Lapras","details":"Lapras, L87, M","condition":"367/367","active":false,"stats":{"atk":198,"def":189,"spa":198,"spd":215,"spe":154},"moves":["iciclespear","dragondance","earthquake","waterfall"],"baseAbility":"waterabsorb","item":"loadeddice","pokeball":"pokeball","ability":"waterabsorb","commanding":false,"reviving":false,"teraType":"Ground","terastallized":""},{"ident":"p1: Keldeo","details":"Keldeo-Resolute, L79","condition":"273/273","active":false,"stats":{"atk":118,"def":188,"spa":249,"spd":188,"spe":216},"moves":["vacuumwave","secretsword","hydropump","airslash"],"baseAbility":"justified","item":"choicespecs","pokeball":"pokeball","ability":"justified","commanding":false,"reviving":false,"teraType":"Water","terastallized":""},{"ident":"p1: Hitmontop","details":"Hitmontop, L88, M","condition":"231/231","active":false,"stats":{"atk":217,"def":217,"spa":112,"spd":244,"spe":173},"moves":["earthquake","rapidspin","stoneedge","closecombat"],"baseAbility":"intimidate","item":"assaultvest","pokeball":"pokeball","ability":"intimidate","commanding":false,"reviving":false,"teraType":"Steel","terastallized":""},{"ident":"p1: Gholdengo","details":"Gholdengo, L77","condition":"261/261","active":false,"stats":{"atk":97,"def":191,"spa":249,"spd":185,"spe":174},"moves":["focusblast","nastyplot","makeitrain","shadowball"],"baseAbility":"goodasgold","item":"leftovers","pokeball":"pokeball","ability":"goodasgold","commanding":false,"reviving":false,"teraType":"Ghost","terastallized":""},{"ident":"p1: Minior","details":"Minior-Indigo, L79","condition":"224/224","active":false,"stats":{"atk":204,"def":140,"spa":204,"spd":140,"spe":235},"moves":["powergem","shellsmash","earthquake","acrobatics"],"baseAbility":"shieldsdown","item":"whiteherb","pokeball":"pokeball","ability":"shieldsdown","commanding":false,"reviving":false,"teraType":"Ground","terastallized":""}]},"rqid":12}
+|init|battle
+|title|cool213 vs. anonop
+|j|☆cool213
+|j|☆anonop
+|t:|1793520911
+|gametype|singles
+|player|p1|cool213|101|
+|player|p2|anonop|102|
+|gen|9
+|tier|[Gen 9] Random Battle
+|rule|Species Clause: Limit one of each Pokemon
+|rule|HP Percentage Mod: HP is shown in percentages
+|rule|Sleep Clause Mod: Limit one foe put to sleep
+|rule|Illusion Level Mod: Illusion disguises the Pokemon's true level
+|
+|t:|1793520911
+|teamsize|p1|6
+|teamsize|p2|6
+|start
+|switch|p1a: Zarude|Zarude, L77|100/100
+|switch|p2a: Tentacruel|Tentacruel, L84, F|100/100
+|turn|1
+|
+|t:|1793520918
+|-terastallize|p1a: Zarude|Dark
+|move|p2a: Tentacruel|Surf|p1a: Zarude
+|-damage|p1a: Zarude|72/100
+|move|p1a: Zarude|Swords Dance|p1a: Zarude
+|-boost|p1a: Zarude|atk|2
+|
+|upkeep
+|turn|2
+|
+|t:|1793520924
+|move|p2a: Tentacruel|Haze|p2a: Tentacruel
+|-clearallboost
+|move|p1a: Zarude|Swords Dance|p1a: Zarude
+|-boost|p1a: Zarude|atk|2
+|
+|upkeep
+|turn|3
+|
+|t:|1793520930
+|move|p2a: Tentacruel|Rapid Spin|p1a: Zarude
+|-damage|p1a: Zarude|63/100
+|-boost|p2a: Tentacruel|spe|1
+|move|p1a: Zarude|Knock Off|p2a: Tentacruel
+|-damage|p2a: Tentacruel|0 fnt
+|-enditem|p2a: Tentacruel|Leftovers|[from] move: Knock Off|[of] p1a: Zarude
+|faint|p2a: Tentacruel
+|-damage|p1a: Zarude|53/100|[from] item: Life Orb
+|
+|upkeep
+|
+|t:|1793520934
+|switch|p2a: Entei|Entei, L78|100/100
+|turn|4
+|
+|t:|1793520941
+|-terastallize|p2a: Entei|Fire
+|move|p2a: Entei|Extreme Speed|p1a: Zarude
+|-damage|p1a: Zarude|25/100
+|move|p1a: Zarude|Swords Dance|p1a: Zarude
+|-boost|p1a: Zarude|atk|2
+|
+|upkeep
+|turn|5
+|l|☆cool213
+|player|p1|
+|player|p1|
+|j|☆cool213
+|request|{"active":[{"moves":[{"move":"Knock Off","id":"knockoff","pp":31,"maxpp":32,"target":"normal","disabled":false},{"move":"Close Combat","id":"closecombat","pp":8,"maxpp":8,"target":"normal","disabled":false},{"move":"Power Whip","id":"powerwhip","pp":16,"maxpp":16,"target":"normal","disabled":false},{"move":"Swords Dance","id":"swordsdance","pp":29,"maxpp":32,"target":"self","disabled":false}]}],"side":{"name":"cool213","id":"p1","pokemon":[{"ident":"p1: Zarude","details":"Zarude, L77","condition":"71/288","active":true,"stats":{"atk":229,"def":206,"spa":152,"spd":191,"spe":206},"moves":["knockoff","closecombat","powerwhip","swordsdance"],"baseAbility":"leafguard","item":"lifeorb","pokeball":"pokeball","ability":"leafguard","commanding":false,"reviving":false,"teraType":"Dark","terastallized":"Dark"},{"ident":"p1: Lapras","details":"Lapras, L87, M","condition":"367/367","active":false,"stats":{"atk":198,"def":189,"spa":198,"spd":215,"spe":154},"moves":["iciclespear","dragondance","earthquake","waterfall"],"baseAbility":"waterabsorb","item":"loadeddice","pokeball":"pokeball","ability":"waterabsorb","commanding":false,"reviving":false,"teraType":"Ground","terastallized":""},{"ident":"p1: Keldeo","details":"Keldeo-Resolute, L79","condition":"273/273","active":false,"stats":{"atk":118,"def":188,"spa":249,"spd":188,"spe":216},"moves":["vacuumwave","secretsword","hydropump","airslash"],"baseAbility":"justified","item":"choicespecs","pokeball":"pokeball","ability":"justified","commanding":false,"reviving":false,"teraType":"Water","terastallized":""},{"ident":"p1: Hitmontop","details":"Hitmontop, L88, M","condition":"231/231","active":false,"stats":{"atk":217,"def":217,"spa":112,"spd":244,"spe":173},"moves":["earthquake","rapidspin","stoneedge","closecombat"],"baseAbility":"intimidate","item":"assaultvest","pokeball":"pokeball","ability":"intimidate","commanding":false,"reviving":false,"teraType":"Steel","terastallized":""},{"ident":"p1: Gholdengo","details":"Gholdengo, L77","condition":"261/261","active":false,"stats":{"atk":97,"def":191,"spa":249,"spd":185,"spe":174},"moves":["focusblast","nastyplot","makeitrain","shadowball"],"baseAbility":"goodasgold","item":"leftovers","pokeball":"pokeball","ability":"goodasgold","commanding":false,"reviving":false,"teraType":"Ghost","terastallized":""},{"ident":"p1: Minior","details":"Minior-Indigo, L79","condition":"224/224","active":false,"stats":{"atk":204,"def":140,"spa":204,"spd":140,"spe":235},"moves":["powergem","shellsmash","earthquake","acrobatics"],"baseAbility":"shieldsdown","item":"whiteherb","pokeball":"pokeball","ability":"shieldsdown","commanding":false,"reviving":false,"teraType":"Ground","terastallized":""}]},"rqid":12}
+|sentchoice|move 2
+|player|p1|cool213|101|
+|-message|anonop forfeited.
+|
+|win|cool213
+|l|☆anonop
+|player|p2|
+|deinit

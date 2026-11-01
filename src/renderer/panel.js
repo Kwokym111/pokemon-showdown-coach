@@ -17,6 +17,17 @@ function shorten(line) {
   return line.length > MAX_LINE_CHARS ? `${line.slice(0, MAX_LINE_CHARS)} … (+${line.length - MAX_LINE_CHARS} chars)` : line;
 }
 
+// New battle, or Showdown replaying one after a reload: start the display over.
+// (With two battles open at once this also clears the other one's lines; fine for a
+// debug view, the real panel will be per-room.)
+window.panelAPI.onReset(({ room }) => {
+  recent.length = 0;
+  total = 0;
+  countEl.textContent = 0;
+  roomEl.textContent = room;
+  logEl.textContent = '';
+});
+
 window.panelAPI.onLine(({ room, line }) => {
   total++;
   recent.push(shorten(line));

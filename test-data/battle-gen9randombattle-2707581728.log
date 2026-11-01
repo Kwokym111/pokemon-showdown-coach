@@ -1,0 +1,123 @@
+|init|battle
+|title|anonop vs. cool213
+|j|☆anonop
+|j|☆cool213
+|t:|1793520796
+|gametype|singles
+|player|p1|anonop|102|
+|player|p2|cool213|101|
+|gen|9
+|tier|[Gen 9] Random Battle
+|rule|Species Clause: Limit one of each Pokemon
+|rule|HP Percentage Mod: HP is shown in percentages
+|rule|Sleep Clause Mod: Limit one foe put to sleep
+|rule|Illusion Level Mod: Illusion disguises the Pokemon's true level
+|
+|t:|1793520796
+|teamsize|p1|6
+|teamsize|p2|6
+|start
+|switch|p1a: Excadrill|Excadrill, L79, M|100/100
+|switch|p2a: Ting-Lu|Ting-Lu, L78|370/370
+|-ability|p1a: Excadrill|Mold Breaker
+|-ability|p2a: Ting-Lu|Vessel of Ruin
+|turn|1
+|request|{"active":[{"moves":[{"move":"Heavy Slam","id":"heavyslam","pp":16,"maxpp":16,"target":"normal","disabled":false},{"move":"Earthquake","id":"earthquake","pp":16,"maxpp":16,"target":"allAdjacent","disabled":false},{"move":"Stealth Rock","id":"stealthrock","pp":32,"maxpp":32,"target":"foeSide","disabled":false},{"move":"Payback","id":"payback","pp":16,"maxpp":16,"target":"normal","disabled":false}],"canTerastallize":"Ghost"}],"side":{"name":"cool213","id":"p2","pokemon":[{"ident":"p2: Ting-Lu","details":"Ting-Lu, L78","condition":"370/370","active":true,"stats":{"atk":217,"def":240,"spa":131,"spd":170,"spe":115},"moves":["heavyslam","earthquake","stealthrock","payback"],"baseAbility":"vesselofruin","item":"leftovers","pokeball":"pokeball","ability":"vesselofruin","commanding":false,"reviving":false,"teraType":"Ghost","terastallized":""},{"ident":"p2: Sandslash","details":"Sandslash, L89, F","condition":"278/278","active":false,"stats":{"atk":229,"def":247,"spa":131,"spd":149,"spe":166},"moves":["earthquake","rapidspin","knockoff","swordsdance"],"baseAbility":"sandrush","item":"leftovers","pokeball":"pokeball","ability":"sandrush","commanding":false,"reviving":false,"teraType":"Dragon","terastallized":""},{"ident":"p2: Flutter Mane","details":"Flutter Mane, L74","condition":"203/203","active":false,"stats":{"atk":86,"def":124,"spa":243,"spd":243,"spe":243},"moves":["mysticalfire","calmmind","shadowball","moonblast"],"baseAbility":"protosynthesis","item":"lifeorb","pokeball":"pokeball","ability":"protosynthesis","commanding":false,"reviving":false,"teraType":"Ghost","terastallized":""},{"ident":"p2: Armarouge","details":"Armarouge, L80, F","condition":"267/267","active":false,"stats":{"atk":101,"def":206,"spa":246,"spd":174,"spe":166},"moves":["meteorbeam","armorcannon","psyshock","energyball"],"baseAbility":"weakarmor","item":"powerherb","pokeball":"pokeball","ability":"weakarmor","commanding":false,"reviving":false,"teraType":"Fire","terastallized":""},{"ident":"p2: Pikachu","details":"Pikachu-Alola, L93, F","condition":"216/216","active":false,"stats":{"atk":155,"def":127,"spa":146,"spd":146,"spe":220},"moves":["playrough","surf","knockoff","volttackle"],"baseAbility":"lightningrod","item":"lightball","pokeball":"pokeball","ability":"lightningrod","commanding":false,"reviving":false,"teraType":"Water","terastallized":""},{"ident":"p2: Appletun","details":"Appletun, L92, M","condition":"352/352","active":false,"stats":{"atk":161,"def":200,"spa":236,"spd":200,"spe":108},"moves":["recover","leechseed","appleacid","dragonpulse"],"baseAbility":"thickfat","item":"leftovers","pokeball":"pokeball","ability":"thickfat","commanding":false,"reviving":false,"teraType":"Steel","terastallized":""}]},"rqid":3}
+|
+|t:|1793520801
+|move|p1a: Excadrill|Earthquake|p2a: Ting-Lu
+|-damage|p2a: Ting-Lu|277/370
+|move|p2a: Ting-Lu|Earthquake|p1a: Excadrill
+|-supereffective|p1a: Excadrill
+|-damage|p1a: Excadrill|7/100
+|
+|-heal|p1a: Excadrill|13/100|[from] item: Leftovers
+|-heal|p2a: Ting-Lu|300/370|[from] item: Leftovers
+|upkeep
+|turn|2
+|request|{"active":[{"moves":[{"move":"Heavy Slam","id":"heavyslam","pp":16,"maxpp":16,"target":"normal","disabled":false},{"move":"Earthquake","id":"earthquake","pp":15,"maxpp":16,"target":"allAdjacent","disabled":false},{"move":"Stealth Rock","id":"stealthrock","pp":32,"maxpp":32,"target":"foeSide","disabled":false},{"move":"Payback","id":"payback","pp":16,"maxpp":16,"target":"normal","disabled":false}],"canTerastallize":"Ghost"}],"side":{"name":"cool213","id":"p2","pokemon":[{"ident":"p2: Ting-Lu","details":"Ting-Lu, L78","condition":"300/370","active":true,"stats":{"atk":217,"def":240,"spa":131,"spd":170,"spe":115},"moves":["heavyslam","earthquake","stealthrock","payback"],"baseAbility":"vesselofruin","item":"leftovers","pokeball":"pokeball","ability":"vesselofruin","commanding":false,"reviving":false,"teraType":"Ghost","terastallized":""},{"ident":"p2: Sandslash","details":"Sandslash, L89, F","condition":"278/278","active":false,"stats":{"atk":229,"def":247,"spa":131,"spd":149,"spe":166},"moves":["earthquake","rapidspin","knockoff","swordsdance"],"baseAbility":"sandrush","item":"leftovers","pokeball":"pokeball","ability":"sandrush","commanding":false,"reviving":false,"teraType":"Dragon","terastallized":""},{"ident":"p2: Flutter Mane","details":"Flutter Mane, L74","condition":"203/203","active":false,"stats":{"atk":86,"def":124,"spa":243,"spd":243,"spe":243},"moves":["mysticalfire","calmmind","shadowball","moonblast"],"baseAbility":"protosynthesis","item":"lifeorb","pokeball":"pokeball","ability":"protosynthesis","commanding":false,"reviving":false,"teraType":"Ghost","terastallized":""},{"ident":"p2: Armarouge","details":"Armarouge, L80, F","condition":"267/267","active":false,"stats":{"atk":101,"def":206,"spa":246,"spd":174,"spe":166},"moves":["meteorbeam","armorcannon","psyshock","energyball"],"baseAbility":"weakarmor","item":"powerherb","pokeball":"pokeball","ability":"weakarmor","commanding":false,"reviving":false,"teraType":"Fire","terastallized":""},{"ident":"p2: Pikachu","details":"Pikachu-Alola, L93, F","condition":"216/216","active":false,"stats":{"atk":155,"def":127,"spa":146,"spd":146,"spe":220},"moves":["playrough","surf","knockoff","volttackle"],"baseAbility":"lightningrod","item":"lightball","pokeball":"pokeball","ability":"lightningrod","commanding":false,"reviving":false,"teraType":"Water","terastallized":""},{"ident":"p2: Appletun","details":"Appletun, L92, M","condition":"352/352","active":false,"stats":{"atk":161,"def":200,"spa":236,"spd":200,"spe":108},"moves":["recover","leechseed","appleacid","dragonpulse"],"baseAbility":"thickfat","item":"leftovers","pokeball":"pokeball","ability":"thickfat","commanding":false,"reviving":false,"teraType":"Steel","terastallized":""}]},"rqid":5}
+|
+|t:|1793520805
+|move|p1a: Excadrill|Rapid Spin|p2a: Ting-Lu
+|-damage|p2a: Ting-Lu|267/370
+|-boost|p1a: Excadrill|spe|1
+|move|p2a: Ting-Lu|Payback|p1a: Excadrill
+|-damage|p1a: Excadrill|0 fnt
+|faint|p1a: Excadrill
+|
+|-heal|p2a: Ting-Lu|290/370|[from] item: Leftovers
+|upkeep
+|request|{"wait":true,"side":{"name":"cool213","id":"p2","pokemon":[{"ident":"p2: Ting-Lu","details":"Ting-Lu, L78","condition":"290/370","active":true,"stats":{"atk":217,"def":240,"spa":131,"spd":170,"spe":115},"moves":["heavyslam","earthquake","stealthrock","payback"],"baseAbility":"vesselofruin","item":"leftovers","pokeball":"pokeball","ability":"vesselofruin","commanding":false,"reviving":false,"teraType":"Ghost","terastallized":""},{"ident":"p2: Sandslash","details":"Sandslash, L89, F","condition":"278/278","active":false,"stats":{"atk":229,"def":247,"spa":131,"spd":149,"spe":166},"moves":["earthquake","rapidspin","knockoff","swordsdance"],"baseAbility":"sandrush","item":"leftovers","pokeball":"pokeball","ability":"sandrush","commanding":false,"reviving":false,"teraType":"Dragon","terastallized":""},{"ident":"p2: Flutter Mane","details":"Flutter Mane, L74","condition":"203/203","active":false,"stats":{"atk":86,"def":124,"spa":243,"spd":243,"spe":243},"moves":["mysticalfire","calmmind","shadowball","moonblast"],"baseAbility":"protosynthesis","item":"lifeorb","pokeball":"pokeball","ability":"protosynthesis","commanding":false,"reviving":false,"teraType":"Ghost","terastallized":""},{"ident":"p2: Armarouge","details":"Armarouge, L80, F","condition":"267/267","active":false,"stats":{"atk":101,"def":206,"spa":246,"spd":174,"spe":166},"moves":["meteorbeam","armorcannon","psyshock","energyball"],"baseAbility":"weakarmor","item":"powerherb","pokeball":"pokeball","ability":"weakarmor","commanding":false,"reviving":false,"teraType":"Fire","terastallized":""},{"ident":"p2: Pikachu","details":"Pikachu-Alola, L93, F","condition":"216/216","active":false,"stats":{"atk":155,"def":127,"spa":146,"spd":146,"spe":220},"moves":["playrough","surf","knockoff","volttackle"],"baseAbility":"lightningrod","item":"lightball","pokeball":"pokeball","ability":"lightningrod","commanding":false,"reviving":false,"teraType":"Water","terastallized":""},{"ident":"p2: Appletun","details":"Appletun, L92, M","condition":"352/352","active":false,"stats":{"atk":161,"def":200,"spa":236,"spd":200,"spe":108},"moves":["recover","leechseed","appleacid","dragonpulse"],"baseAbility":"thickfat","item":"leftovers","pokeball":"pokeball","ability":"thickfat","commanding":false,"reviving":false,"teraType":"Steel","terastallized":""}]},"rqid":7}
+|
+|t:|1793520808
+|switch|p1a: Rabsca|Rabsca, L91, M|100/100
+|turn|3
+|request|{"active":[{"moves":[{"move":"Heavy Slam","id":"heavyslam","pp":16,"maxpp":16,"target":"normal","disabled":false},{"move":"Earthquake","id":"earthquake","pp":15,"maxpp":16,"target":"allAdjacent","disabled":false},{"move":"Stealth Rock","id":"stealthrock","pp":32,"maxpp":32,"target":"foeSide","disabled":false},{"move":"Payback","id":"payback","pp":15,"maxpp":16,"target":"normal","disabled":false}],"canTerastallize":"Ghost"}],"side":{"name":"cool213","id":"p2","pokemon":[{"ident":"p2: Ting-Lu","details":"Ting-Lu, L78","condition":"290/370","active":true,"stats":{"atk":217,"def":240,"spa":131,"spd":170,"spe":115},"moves":["heavyslam","earthquake","stealthrock","payback"],"baseAbility":"vesselofruin","item":"leftovers","pokeball":"pokeball","ability":"vesselofruin","commanding":false,"reviving":false,"teraType":"Ghost","terastallized":""},{"ident":"p2: Sandslash","details":"Sandslash, L89, F","condition":"278/278","active":false,"stats":{"atk":229,"def":247,"spa":131,"spd":149,"spe":166},"moves":["earthquake","rapidspin","knockoff","swordsdance"],"baseAbility":"sandrush","item":"leftovers","pokeball":"pokeball","ability":"sandrush","commanding":false,"reviving":false,"teraType":"Dragon","terastallized":""},{"ident":"p2: Flutter Mane","details":"Flutter Mane, L74","condition":"203/203","active":false,"stats":{"atk":86,"def":124,"spa":243,"spd":243,"spe":243},"moves":["mysticalfire","calmmind","shadowball","moonblast"],"baseAbility":"protosynthesis","item":"lifeorb","pokeball":"pokeball","ability":"protosynthesis","commanding":false,"reviving":false,"teraType":"Ghost","terastallized":""},{"ident":"p2: Armarouge","details":"Armarouge, L80, F","condition":"267/267","active":false,"stats":{"atk":101,"def":206,"spa":246,"spd":174,"spe":166},"moves":["meteorbeam","armorcannon","psyshock","energyball"],"baseAbility":"weakarmor","item":"powerherb","pokeball":"pokeball","ability":"weakarmor","commanding":false,"reviving":false,"teraType":"Fire","terastallized":""},{"ident":"p2: Pikachu","details":"Pikachu-Alola, L93, F","condition":"216/216","active":false,"stats":{"atk":155,"def":127,"spa":146,"spd":146,"spe":220},"moves":["playrough","surf","knockoff","volttackle"],"baseAbility":"lightningrod","item":"lightball","pokeball":"pokeball","ability":"lightningrod","commanding":false,"reviving":false,"teraType":"Water","terastallized":""},{"ident":"p2: Appletun","details":"Appletun, L92, M","condition":"352/352","active":false,"stats":{"atk":161,"def":200,"spa":236,"spd":200,"spe":108},"moves":["recover","leechseed","appleacid","dragonpulse"],"baseAbility":"thickfat","item":"leftovers","pokeball":"pokeball","ability":"thickfat","commanding":false,"reviving":false,"teraType":"Steel","terastallized":""}]},"rqid":9}
+|init|battle
+|title|anonop vs. cool213
+|j|☆anonop
+|j|☆cool213
+|t:|1793520796
+|gametype|singles
+|player|p1|anonop|102|
+|player|p2|cool213|101|
+|gen|9
+|tier|[Gen 9] Random Battle
+|rule|Species Clause: Limit one of each Pokemon
+|rule|HP Percentage Mod: HP is shown in percentages
+|rule|Sleep Clause Mod: Limit one foe put to sleep
+|rule|Illusion Level Mod: Illusion disguises the Pokemon's true level
+|
+|t:|1793520796
+|teamsize|p1|6
+|teamsize|p2|6
+|start
+|switch|p1a: Excadrill|Excadrill, L79, M|100/100
+|switch|p2a: Ting-Lu|Ting-Lu, L78|100/100
+|-ability|p1a: Excadrill|Mold Breaker
+|-ability|p2a: Ting-Lu|Vessel of Ruin
+|turn|1
+|
+|t:|1793520801
+|move|p1a: Excadrill|Earthquake|p2a: Ting-Lu
+|-damage|p2a: Ting-Lu|75/100
+|move|p2a: Ting-Lu|Earthquake|p1a: Excadrill
+|-supereffective|p1a: Excadrill
+|-damage|p1a: Excadrill|7/100
+|
+|-heal|p1a: Excadrill|13/100|[from] item: Leftovers
+|-heal|p2a: Ting-Lu|82/100|[from] item: Leftovers
+|upkeep
+|turn|2
+|
+|t:|1793520805
+|move|p1a: Excadrill|Rapid Spin|p2a: Ting-Lu
+|-damage|p2a: Ting-Lu|73/100
+|-boost|p1a: Excadrill|spe|1
+|move|p2a: Ting-Lu|Payback|p1a: Excadrill
+|-damage|p1a: Excadrill|0 fnt
+|faint|p1a: Excadrill
+|
+|-heal|p2a: Ting-Lu|79/100|[from] item: Leftovers
+|upkeep
+|
+|t:|1793520808
+|switch|p1a: Rabsca|Rabsca, L91, M|100/100
+|turn|3
+|l|☆cool213
+|player|p2|
+|player|p2|
+|j|☆cool213
+|request|{"active":[{"moves":[{"move":"Heavy Slam","id":"heavyslam","pp":16,"maxpp":16,"target":"normal","disabled":false},{"move":"Earthquake","id":"earthquake","pp":15,"maxpp":16,"target":"allAdjacent","disabled":false},{"move":"Stealth Rock","id":"stealthrock","pp":32,"maxpp":32,"target":"foeSide","disabled":false},{"move":"Payback","id":"payback","pp":15,"maxpp":16,"target":"normal","disabled":false}],"canTerastallize":"Ghost"}],"side":{"name":"cool213","id":"p2","pokemon":[{"ident":"p2: Ting-Lu","details":"Ting-Lu, L78","condition":"290/370","active":true,"stats":{"atk":217,"def":240,"spa":131,"spd":170,"spe":115},"moves":["heavyslam","earthquake","stealthrock","payback"],"baseAbility":"vesselofruin","item":"leftovers","pokeball":"pokeball","ability":"vesselofruin","commanding":false,"reviving":false,"teraType":"Ghost","terastallized":""},{"ident":"p2: Sandslash","details":"Sandslash, L89, F","condition":"278/278","active":false,"stats":{"atk":229,"def":247,"spa":131,"spd":149,"spe":166},"moves":["earthquake","rapidspin","knockoff","swordsdance"],"baseAbility":"sandrush","item":"leftovers","pokeball":"pokeball","ability":"sandrush","commanding":false,"reviving":false,"teraType":"Dragon","terastallized":""},{"ident":"p2: Flutter Mane","details":"Flutter Mane, L74","condition":"203/203","active":false,"stats":{"atk":86,"def":124,"spa":243,"spd":243,"spe":243},"moves":["mysticalfire","calmmind","shadowball","moonblast"],"baseAbility":"protosynthesis","item":"lifeorb","pokeball":"pokeball","ability":"protosynthesis","commanding":false,"reviving":false,"teraType":"Ghost","terastallized":""},{"ident":"p2: Armarouge","details":"Armarouge, L80, F","condition":"267/267","active":false,"stats":{"atk":101,"def":206,"spa":246,"spd":174,"spe":166},"moves":["meteorbeam","armorcannon","psyshock","energyball"],"baseAbility":"weakarmor","item":"powerherb","pokeball":"pokeball","ability":"weakarmor","commanding":false,"reviving":false,"teraType":"Fire","terastallized":""},{"ident":"p2: Pikachu","details":"Pikachu-Alola, L93, F","condition":"216/216","active":false,"stats":{"atk":155,"def":127,"spa":146,"spd":146,"spe":220},"moves":["playrough","surf","knockoff","volttackle"],"baseAbility":"lightningrod","item":"lightball","pokeball":"pokeball","ability":"lightningrod","commanding":false,"reviving":false,"teraType":"Water","terastallized":""},{"ident":"p2: Appletun","details":"Appletun, L92, M","condition":"352/352","active":false,"stats":{"atk":161,"def":200,"spa":236,"spd":200,"spe":108},"moves":["recover","leechseed","appleacid","dragonpulse"],"baseAbility":"thickfat","item":"leftovers","pokeball":"pokeball","ability":"thickfat","commanding":false,"reviving":false,"teraType":"Steel","terastallized":""}]},"rqid":9}
+|sentchoice|move 3 terastallize
+|player|p2|cool213|101|
+|l|☆anonop
+|player|p1|
+|j|☆anonop
+|player|p1|anonop|102|
+|l|☆anonop
+|player|p1|
+|-message|cool213 forfeited.
+|
+|win|anonop
+|deinit

@@ -11,4 +11,8 @@ contextBridge.exposeInMainWorld('panelAPI', {
     // Pass only the data, not the IPC event object, so nothing privileged leaks through.
     ipcRenderer.on('battle-line', (_event, data) => callback(data));
   },
+  // callback receives { room }: a new battle (or a replay of one) is starting
+  onReset: (callback) => {
+    ipcRenderer.on('battle-reset', (_event, data) => callback(data));
+  },
 });

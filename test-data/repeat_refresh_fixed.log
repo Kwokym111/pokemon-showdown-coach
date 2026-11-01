@@ -1,0 +1,114 @@
+|init|battle
+|title|anonop vs. cool213
+|j|☆anonop
+|j|☆cool213
+|t:|1793521826
+|gametype|singles
+|player|p1|anonop|102|
+|player|p2|cool213|101|
+|gen|9
+|tier|[Gen 9] Random Battle
+|rule|Species Clause: Limit one of each Pokemon
+|rule|HP Percentage Mod: HP is shown in percentages
+|rule|Sleep Clause Mod: Limit one foe put to sleep
+|rule|Illusion Level Mod: Illusion disguises the Pokemon's true level
+|
+|t:|1793521826
+|teamsize|p1|6
+|teamsize|p2|6
+|start
+|switch|p1a: Cobalion|Cobalion, L80|100/100
+|switch|p2a: Banette|Banette, L93, M|100/100
+|turn|1
+|
+|t:|1793521831
+|-terastallize|p1a: Cobalion|Ghost
+|move|p1a: Cobalion|Iron Head|p2a: Banette
+|-damage|p2a: Banette|70/100
+|-start|p1a: Cobalion|Disable|Iron Head|[from] ability: Cursed Body|[of] p2a: Banette
+|move|p2a: Banette|Poltergeist|p1a: Cobalion
+|-activate|p1a: Cobalion|move: Poltergeist|Leftovers
+|-supereffective|p1a: Cobalion
+|-damage|p1a: Cobalion|0 fnt
+|faint|p1a: Cobalion
+|-damage|p2a: Banette|60/100|[from] item: Life Orb
+|
+|upkeep
+|
+|t:|1793521834
+|switch|p1a: Klawf|Klawf, L90, F|100/100
+|turn|2
+|
+|t:|1793521839
+|-terastallize|p2a: Banette|Poison
+|move|p2a: Banette|Shadow Sneak|p1a: Klawf
+|-damage|p1a: Klawf|78/100
+|-damage|p2a: Banette|50/100|[from] item: Life Orb
+|move|p1a: Klawf|Stone Edge|p2a: Banette
+|-damage|p2a: Banette|0 fnt
+|-start|p1a: Klawf|Disable|Stone Edge|[from] ability: Cursed Body|[of] p2a: Banette
+|faint|p2a: Banette
+|
+|upkeep
+|
+|t:|1793521843
+|switch|p2a: Necrozma|Necrozma, L80|100/100
+|turn|3
+|l|☆anonop
+|player|p1|
+|j|☆anonop
+|player|p1|anonop|102|
+|
+|t:|1793521922
+|-activate|p1a: Klawf|move: Struggle
+|move|p1a: Klawf|Struggle|p2a: Necrozma
+|-damage|p2a: Necrozma|81/100
+|-damage|p1a: Klawf|53/100|[from] recoil
+|move|p2a: Necrozma|Photon Geyser|p1a: Klawf
+|-damage|p1a: Klawf|0 fnt
+|faint|p1a: Klawf
+|
+|-heal|p2a: Necrozma|87/100|[from] item: Leftovers
+|upkeep
+|l|☆cool213
+|player|p2|
+|j|☆cool213
+|player|p2|cool213|101|
+|
+|t:|1793522034
+|switch|p1a: Gallade|Gallade, L80, M|100/100
+|turn|4
+|
+|t:|1793522038
+|move|p1a: Gallade|Night Slash|p2a: Necrozma
+|-supereffective|p2a: Necrozma
+|-damage|p2a: Necrozma|34/100
+|-damage|p1a: Gallade|90/100|[from] item: Life Orb
+|move|p2a: Necrozma|Earth Power|p1a: Gallade
+|-damage|p1a: Gallade|63/100
+|
+|-heal|p2a: Necrozma|40/100|[from] item: Leftovers
+|upkeep
+|turn|5
+|l|☆cool213
+|player|p2|
+|j|☆cool213
+|player|p2|cool213|101|
+|l|☆cool213
+|player|p2|
+|j|☆cool213
+|player|p2|cool213|101|
+|l|☆cool213
+|player|p2|
+|j|☆cool213
+|player|p2|cool213|101|
+|l|☆cool213
+|player|p2|
+|player|p2|
+|j|☆cool213
+|request|{"active":[{"moves":[{"move":"Moonlight","id":"moonlight","pp":8,"maxpp":8,"target":"self","disabled":false},{"move":"Photon Geyser","id":"photongeyser","pp":7,"maxpp":8,"target":"normal","disabled":false},{"move":"Earth Power","id":"earthpower","pp":15,"maxpp":16,"target":"normal","disabled":false},{"move":"Calm Mind","id":"calmmind","pp":32,"maxpp":32,"target":"self","disabled":false}]}],"side":{"name":"cool213","id":"p2","pokemon":[{"ident":"p2: Necrozma","details":"Necrozma, L80","condition":"112/286","active":true,"stats":{"atk":176,"def":208,"spa":249,"spd":189,"spe":173},"moves":["moonlight","photongeyser","earthpower","calmmind"],"baseAbility":"prismarmor","item":"leftovers","pokeball":"pokeball","ability":"prismarmor","commanding":false,"reviving":false,"teraType":"Ground","terastallized":""},{"ident":"p2: Terapagos","details":"Terapagos, L77, F","condition":"265/265","active":false,"stats":{"atk":105,"def":175,"spa":145,"spd":175,"spe":137},"moves":["rest","terastarstorm","calmmind","earthpower"],"baseAbility":"terashift","item":"chestoberry","pokeball":"pokeball","ability":"terashift","commanding":false,"reviving":false,"teraType":"Stellar","terastallized":""},{"ident":"p2: Grimmsnarl","details":"Grimmsnarl, L83, M","condition":"293/293","active":false,"stats":{"atk":247,"def":156,"spa":205,"spd":172,"spe":147},"moves":["reflect","lightscreen","thunderwave","spiritbreak"],"baseAbility":"prankster","item":"lightclay","pokeball":"pokeball","ability":"prankster","commanding":false,"reviving":false,"teraType":"Poison","terastallized":""},{"ident":"p2: Banette","details":"Banette, L93, M","condition":"0 fnt","active":false,"stats":{"atk":267,"def":174,"spa":207,"spd":170,"spe":174},"moves":["gunkshot","poltergeist","thunderwave","shadowsneak"],"baseAbility":"cursedbody","item":"lifeorb","pokeball":"pokeball","ability":"cursedbody","commanding":false,"reviving":false,"teraType":"Poison","terastallized":""},{"ident":"p2: Dudunsparce","details":"Dudunsparce, L83, F","condition":"343/343","active":false,"stats":{"atk":214,"def":180,"spa":189,"spd":172,"spe":139},"moves":["headbutt","roost","glare","earthquake"],"baseAbility":"serenegrace","item":"leftovers","pokeball":"pokeball","ability":"serenegrace","commanding":false,"reviving":false,"teraType":"Ghost","terastallized":""},{"ident":"p2: Zekrom","details":"Zekrom, L71","condition":"259/259","active":false,"stats":{"atk":254,"def":212,"spa":212,"spd":183,"spe":169},"moves":["outrage","dragondance","substitute","boltstrike"],"baseAbility":"teravolt","item":"leftovers","pokeball":"pokeball","ability":"teravolt","commanding":false,"reviving":false,"teraType":"Steel","terastallized":""}]},"rqid":17}
+|player|p2|cool213|101|
+|-message|cool213 forfeited.
+|
+|win|anonop
+|deinit
