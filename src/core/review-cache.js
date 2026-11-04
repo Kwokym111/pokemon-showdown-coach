@@ -22,6 +22,8 @@ function applyCachedExplanations(review, cached) {
   return {
     ...review,
     aiUsed: true,
+    // keep naming the model after a reload from the saved file (older caches have none)
+    ...(typeof cached.aiModel === 'string' && cached.aiModel ? { aiModel: cached.aiModel } : {}),
     summary: cached.summary,
     moments: review.moments.map((m, i) => ({ ...m, explanation: cached.moments[i].explanation })),
   };

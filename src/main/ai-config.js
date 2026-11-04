@@ -8,6 +8,38 @@ const { parseEnv } = require('util');
 
 const ENV_FILE = path.join(__dirname, '..', '..', '.env');
 
+// The default model chain lives next to the code that uses it.
+const { DEFAULT_GEMINI_MODELS } = require('./ai');
+
+// Pure part, so tests can check the provider priority without touching the real .env.
+// `get(name)` returns the trimmed value of a setting, or '' if it is not set.
+//   1. GEMINI_API_KEY set            -> Google Gemini
+//   2. AI_API_KEY + AI_ACCOUNT_ID    -> Cloudflare Workers AI
+//   3. otherwise                     -> provider null (no AI, the review shows without words)
+function configFromEnv(get) {
+  const geminiKey = get('GEMINI_API_KEY');
+  if (geminiKey) {
+    const models = get('GEMINI_MODELS').split(',').map((m) => m.trim()).filter(Boolean);
+    return {
+      provider: 'gemini',
+      apiKey: geminiKey,
+      models: models.length ? models : DEFAULT_GEMINI_MODELS.slice(),
+      thinking: get('GEMINI_THINKING') || undefined, // undefined = let the model decide
+    };
+  }
+  const apiKey = get('AI_API_KEY');
+  const accountId = get('AI_ACCOUNT_ID');
+  if (apiKey && accountId) {
+    return {
+      provider: 'cloudflare',
+      apiKey,
+      accountId,
+      model: get('AI_MODEL') || undefined, // undefined = the default model in ai.js
+    };
+  }
+  return { provider: null, apiKey: '' };
+}
+
 // Read on every call (the file is tiny), so editing .env takes effect without restarting.
 // parseEnv returns the values without touching process.env. Real environment variables
 // still win, which is handy for a one-off run.
@@ -18,17 +50,12 @@ function loadAiConfig() {
   } catch {
     // no .env: fine, the app just runs without AI
   }
-  const get = (name) => (process.env[name] || fromFile[name] || '').trim();
-  return {
-    apiKey: get('AI_API_KEY'),
-    accountId: get('AI_ACCOUNT_ID'),
-    model: get('AI_MODEL') || undefined, // undefined = the default model in ai.js
-  };
+  return configFromEnv((name) => (process.env[name] || fromFile[name] || '').trim());
 }
 
-// The default provider needs both a key and an account id; without them the AI step is off.
+// True when some provider has everything it needs; otherwise the AI step is off.
 function aiIsConfigured(config) {
-  return Boolean(config.apiKey && config.accountId);
+  return Boolean(config && config.provider && config.apiKey);
 }
 
-module.exports = { loadAiConfig, aiIsConfigured };
+module.exports = { loadAiConfig, aiIsConfigured, configFromEnv, DEFAULT_GEMINI_MODELS };

@@ -1,15 +1,20 @@
 // scripts/try-ai.js: runs a sample review through the real AI so you can read the result.
 //
-//   node --env-file=.env scripts/try-ai.js                     (sample-review.json, or a built-in copy)
-//   node --env-file=.env scripts/try-ai.js path/to/review.json
+//   node scripts/try-ai.js                          (sample-review.json, or a built-in copy)
+//   node scripts/try-ai.js path/to/review.json      (a saved review)
+//   node scripts/try-ai.js test-data/<game>.log     (a battle log: builds the review, then explains it)
 //
-// Needs AI_API_KEY and AI_ACCOUNT_ID in .env (Node 20.6+ for --env-file). The key is never printed.
+// Reads .env the same way the app does (GEMINI_API_KEY, or AI_API_KEY + AI_ACCOUNT_ID).
+// The key is never printed.
 
 'use strict';
 
 const fs = require('node:fs');
 const path = require('node:path');
 const { addExplanations } = require('../src/main/ai');
+const { loadAiConfig, aiIsConfigured } = require('../src/main/ai-config');
+const { buildBattle } = require('../src/core/state');
+const { buildReview } = require('../src/core/review');
 
 const root = path.join(__dirname, '..');
 
@@ -125,18 +130,35 @@ function findSample() {
 }
 
 async function main() {
-  const apiKey = process.env.AI_API_KEY;
-  const accountId = process.env.AI_ACCOUNT_ID;
-  if (!apiKey || !accountId) {
-    console.error('AI_API_KEY or AI_ACCOUNT_ID missing. Copy .env.example to .env, fill both in, and run:');
-    console.error('  node --env-file=.env scripts/try-ai.js');
+  // Same loader the app uses, so this tests exactly what the app would do.
+  const config = loadAiConfig();
+  if (!aiIsConfigured(config)) {
+    console.error('No AI provider configured. Copy .env.example to .env and fill in GEMINI_API_KEY');
+    console.error('(or AI_API_KEY + AI_ACCOUNT_ID for Cloudflare), then run:');
+    console.error('  node scripts/try-ai.js');
     process.exit(1);
   }
+  // Never print the key: only which provider and models.
+  const models = config.provider === 'gemini' ? config.models.join(' -> ') : (config.model || 'default model');
+  console.log(`Provider: ${config.provider} (${models})`);
 
   let review;
   let source;
   const given = process.argv[2] ? path.resolve(process.argv[2]) : findSample();
-  if (given && fs.existsSync(given)) {
+  if (given && fs.existsSync(given) && given.toLowerCase().endsWith('.log')) {
+    // A raw battle log: build the review exactly like main.js does, then explain it.
+    const text = fs.readFileSync(given, 'utf8');
+    if (!text.includes('|request|')) {
+      console.error('That log has no |request| lines (we only spectated it), so there is nothing to review.');
+      process.exit(1);
+    }
+    review = buildReview(buildBattle(text.split(/\r?\n/)), { room: path.basename(given, '.log') });
+    source = path.relative(root, given);
+    if (review.moments.length === 0) {
+      console.error(`${source} has 0 moments, so there is nothing for the AI to explain.`);
+      process.exit(1);
+    }
+  } else if (given && fs.existsSync(given)) {
     review = JSON.parse(fs.readFileSync(given, 'utf8'));
     source = path.relative(root, given);
   } else if (process.argv[2]) {
@@ -149,7 +171,7 @@ async function main() {
   console.log(`Review: ${source}  (${review.moments.length} moment(s))`);
 
   const started = Date.now();
-  const out = await addExplanations(review, { apiKey, accountId, model: process.env.AI_MODEL || undefined });
+  const out = await addExplanations(review, config);
   const seconds = ((Date.now() - started) / 1000).toFixed(1);
 
   if (!out.aiUsed) {
@@ -157,7 +179,7 @@ async function main() {
     process.exit(1);
   }
 
-  console.log(`\nDone in ${seconds}s.\n`);
+  console.log(`\nDone in ${seconds}s. Answered by: ${out.aiModel || 'unknown model'}\n`);
   console.log('SUMMARY');
   console.log('  ' + out.summary + '\n');
   for (const m of out.moments) {

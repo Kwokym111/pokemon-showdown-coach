@@ -52,3 +52,8 @@ test('a cache without AI text is not used', () => {
   c.moments[1].explanation = null;
   assert.strictEqual(applyCachedExplanations(review(), c), null);
 });
+
+test('aiModel is carried over from the cache when present, and left out when not', () => {
+  assert.strictEqual(applyCachedExplanations(review(), { ...cached(), aiModel: 'gemini-x' }).aiModel, 'gemini-x');
+  assert.strictEqual('aiModel' in applyCachedExplanations(review(), cached()), false);
+});

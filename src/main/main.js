@@ -208,7 +208,7 @@ async function explainInBackground(room, review, myToken) {
 
   const config = loadAiConfig();
   if (!aiIsConfigured(config)) {
-    console.log('[ai] no key/account id in .env, showing the review without AI text');
+    console.log('[ai] no AI provider configured in .env, showing the review without AI text');
     sendAiStatus('unavailable');
     return;
   }
