@@ -27,7 +27,8 @@ const bigMoment = (rule) => bigReview.moments.find((m) => m.rule === rule);
 function request(kind, team, moves = ['Tackle']) {
   const side = {
     name: 'Alice', id: 'p1',
-    pokemon: team.map(([name, condition], i) => ({ ident: `p1: ${name}`, details: `${name}, L80`, condition, active: i === 0, moves: ['tackle'] })),
+    // A team entry may carry a third value: my item id (as in a real |request|).
+    pokemon: team.map(([name, condition, item], i) => ({ ident: `p1: ${name}`, details: `${name}, L80`, condition, active: i === 0, moves: ['tackle'], ...(item ? { item } : {}) })),
   };
   if (kind === 'force') return { forceSwitch: [true], side };
   return { active: [{ moves: moves.map((m) => ({ move: m, id: m.toLowerCase().replace(/[^a-z0-9]/g, ''), pp: 10, maxpp: 10 })) }], side };
@@ -244,16 +245,17 @@ test('move-failed: does NOT fire when the target switched, or the effect had end
 
 // Turn 1 reveals Flamethrower. Turn 2: my Snorlax faints to it, then a replacement comes in
 // and (turn 3) Charizard's Flamethrower hits it.
-function replacementGame({ replacement = 'Venusaur', bench, after = '40/100', entryHp = '100/100', extraTurn3 = [], attacker = 'Charizard' }) {
+// `firstMove` is what Charizard uses on turns 1-2; anything but Flamethrower leaves it unrevealed.
+function replacementGame({ replacement = 'Venusaur', bench, after = '40/100', entryHp = '100/100', extraTurn3 = [], attacker = 'Charizard', firstMove = 'Flamethrower' }) {
   const t1 = [['Snorlax', '100/100'], ...bench];
   const t2force = [['Snorlax', '0 fnt'], ...bench];
   return game({
     mine: 'Snorlax', theirs: 'Charizard',
     turns: [
-      { team: t1, body: ['|move|p2a: Charizard|Flamethrower|p1a: Snorlax', '|-damage|p1a: Snorlax|50/100'] },
+      { team: t1, body: [`|move|p2a: Charizard|${firstMove}|p1a: Snorlax`, '|-damage|p1a: Snorlax|50/100'] },
       {
         team: t1,
-        body: ['|move|p2a: Charizard|Flamethrower|p1a: Snorlax', '|-damage|p1a: Snorlax|0 fnt', '|faint|p1a: Snorlax', '|upkeep'],
+        body: [`|move|p2a: Charizard|${firstMove}|p1a: Snorlax`, '|-damage|p1a: Snorlax|0 fnt', '|faint|p1a: Snorlax', '|upkeep'],
         force: { team: t2force, lines: [`|switch|p1a: ${replacement}|${replacement}, L80|${entryHp}`] },
       },
       {
@@ -269,8 +271,11 @@ test('bad-replacement: Masquerain sent in against Rhyperior is a blunder (35-tur
   assert.deepStrictEqual([m.turn, m.label, m.mon], [12, 'blunder', 'Masquerain']);
   assert.deepStrictEqual(
     [m.facts.replacedAfter, m.facts.oppMon, m.facts.oppMove, m.facts.multiplier, m.facts.knockedOut, m.facts.hitTurn],
-    ['faint', 'Rhyperior', 'Stone Edge', 4, true, 13],
+    // Stone Edge had not been revealed when Masquerain came in, so only its type is named.
+    ['faint', 'Rhyperior', null, 4, true, 13],
   );
+  assert.strictEqual(m.facts.oppMoveType, 'Rock');
+  assert.strictEqual(m.facts.whyKnowable, 'Rhyperior is a Rock type, so a Rock move was likely');
   // The safer option is a healthy one that takes at most a normal hit, never Masquerain itself.
   assert.ok(m.facts.saferOption.multiplier <= 1);
   assert.notStrictEqual(m.facts.saferOption.name, 'Masquerain');
@@ -293,6 +298,47 @@ test('bad-replacement: does NOT fire for a small hit, or when the opponent switc
   assert.deepStrictEqual(replacementGame({ bench, after: '90/100' }).moments, []); // 10% is not worth flagging
   const sw = replacementGame({ bench, extraTurn3: ['|switch|p2a: Moltres|Moltres, L80|100/100'], attacker: 'Moltres' });
   assert.deepStrictEqual(sw.moments.filter((m) => m.rule === 'bad-replacement'), []);
+});
+
+test('bad-replacement: does NOT fire when the replacement holds Weakness Policy and survives (log 2707347511, turn 12)', () => {
+  const gen = replacementGame({ bench: [['Venusaur', '100/100', 'weaknesspolicy'], ['Gengar', '100/100']] });
+  assert.deepStrictEqual(gen.moments.filter((m) => m.rule === 'bad-replacement'), []);
+  // Same game without the item is still flagged, so the test above cannot pass by accident.
+  const noItem = replacementGame({ bench: [['Venusaur', '100/100', 'leftovers'], ['Gengar', '100/100']] });
+  assert.deepStrictEqual(rules(noItem), [[2, 'bad-replacement', 'blunder']]);
+  // If the hit knocks the holder out the policy never triggers, so it is still a blunder.
+  const ko = replacementGame({ bench: [['Venusaur', '100/100', 'weaknesspolicy'], ['Gengar', '100/100']], after: '0 fnt' });
+  assert.deepStrictEqual(rules(ko), [[2, 'bad-replacement', 'blunder']]);
+
+  // The real log: Golem (Weakness Policy) took Freeze-Dry, then KO'd Delibird.
+  const real = buildReview(
+    buildBattle(fs.readFileSync(path.join(__dirname, '..', 'test-data', 'battle-gen9randombattle-2707347511-gk6nrt15cpatbvcdr3bmvh51vg2fdi3pw.log'), 'utf8').split(/\r?\n/)),
+    { room: 'golem' },
+  );
+  assert.deepStrictEqual(real.moments.filter((m) => m.rule === 'bad-replacement'), []);
+});
+
+test('bad-replacement: a move that was not revealed yet is described by its type only', () => {
+  const bench = [['Venusaur', '100/100'], ['Gengar', '100/100']];
+  const hidden = replacementGame({ bench, firstMove: 'Air Slash' });
+  assert.deepStrictEqual(rules(hidden), [[2, 'bad-replacement', 'blunder']]);
+  const f = hidden.moments[0].facts;
+  assert.strictEqual(f.whyKnowable, 'Charizard is a Fire type, so a Fire move was likely');
+  assert.strictEqual(f.oppMove, null); // the move name must not leak into the facts either
+  assert.strictEqual(f.oppMoveType, 'Fire');
+  // A revealed move keeps the old wording and the move name.
+  const shown = replacementGame({ bench });
+  assert.strictEqual(shown.moments[0].facts.whyKnowable, 'Charizard is a Fire type and had already used Flamethrower on turn 1');
+  assert.strictEqual(shown.moments[0].facts.oppMove, 'Flamethrower');
+
+  // The real log (2707578345): Kyurem sent in against Flamigo, whose Close Combat was not revealed.
+  const real = buildReview(
+    buildBattle(fs.readFileSync(path.join(__dirname, '..', 'test-data', 'battle-gen9randombattle-2707578345.log'), 'utf8').split(/\r?\n/)),
+    { room: 'flamigo' },
+  );
+  const m = real.moments.find((x) => x.rule === 'bad-replacement' && x.mon === 'Kyurem');
+  assert.strictEqual(m.facts.whyKnowable, 'Flamigo is a Fighting type, so a Fighting move was likely');
+  assert.strictEqual(m.facts.oppMove, null);
 });
 
 // ---------------------------------------------------------------------------

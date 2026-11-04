@@ -92,6 +92,10 @@ const CONFIG = {
     'Terrain Pulse', 'Multi-Attack', 'Natural Gift', 'Techno Blast', 'Raging Bull',
     'Ivy Cudgel', 'Aura Wheel', 'Tera Starstorm',
   ],
+
+  // bad-replacement: items (Showdown ids) that make taking a super-effective hit a deliberate
+  // play, as long as the holder survives the hit. Weakness Policy gives +2 Atk and +2 SpA.
+  deliberateReplacementItems: ['weaknesspolicy'],
 };
 
 const otherSide = (side) => (side === 'p1' ? 'p2' : 'p1');
@@ -176,10 +180,13 @@ function whyTypingVisible(battle, ti, opp, oppStart) {
 // For the switch rules: why the opponent's move was predictable. Either it had already been
 // used (revealed), or it matches one of the opponent's own types (a beginner should expect
 // a Ground type to carry a Ground move). Returns null if neither holds.
-function whyMoveKnowable(battle, ti, opp, oppStart, moveName, moveType, oppTypes) {
+// With `byTypeOnly`, a move that was NOT revealed yet is described by its type alone, so the
+// text never names a move the player had not seen.
+function whyMoveKnowable(battle, ti, opp, oppStart, moveName, moveType, oppTypes, { byTypeOnly = false } = {}) {
   const revealed = oppStart.revealedMoves.includes(moveName);
   const stab = oppTypes.includes(moveType);
   if (!revealed && !stab) return null;
+  if (!revealed && byTypeOnly) return `${oppStart.name} is a ${moveType} type, so a ${moveType} move was likely`;
   let used = '';
   if (revealed) {
     const n = firstUseTurn(battle, ti, opp, oppStart.name, moveName);
@@ -673,6 +680,10 @@ function badReplacement(ctx, ti) {
     }
     if (!hit || hit.missed || hit.failed || hit.source || hit.mon !== oppAtPick.name) continue;
     if (hit.effectiveness !== 'super' || cfg.situationalTypeMoves.includes(hit.move)) continue;
+    // Holding e.g. Weakness Policy turns the hit into a boost, so taking it was deliberate. If the
+    // hit knocked the holder out the item never gets to work, so that is still a mistake.
+    const entering = turn.forceSwitch.switchOptions.find((o) => o.name === sw.mon);
+    if (entering && cfg.deliberateReplacementItems.includes(entering.item) && !hit.knockedOut) continue;
     // A Tera on my side before the hit changes the types the log's "super effective" refers to.
     const hitTurn = battle.turns[hitTi];
     if (hitTurn.teras.some((t) => t.side === me && t.mon === sw.mon && t.seq < hit.seq)) continue;
@@ -686,8 +697,11 @@ function badReplacement(ctx, ti) {
     const multiplier = typeMultiplier(gen, move.type, myTypes);
     if (!(multiplier >= 2)) continue; // the log and the data must agree
 
-    const why = whyMoveKnowable(battle, hitTi, opp, oppSnap, hit.move, move.type, oppTypes);
+    const why = whyMoveKnowable(battle, hitTi, opp, oppSnap, hit.move, move.type, oppTypes, { byTypeOnly: true });
     if (!why) continue;
+    // The player could only have known the move itself if it was already revealed; otherwise
+    // the facts carry its type only (also keeps the AI from naming a move they had not seen).
+    const moveRevealed = oppSnap.revealedMoves.includes(hit.move);
 
     let label = null;
     if (hit.knockedOut || hit.damagePct >= cfg.blunderDamagePct) label = 'blunder';
@@ -712,7 +726,7 @@ function badReplacement(ctx, ti) {
         turn: turn.turn, rule: 'bad-replacement', label,
         mon: sw.mon, title: 'Sent in a Pokémon that was weak to the obvious hit', explanation: null,
         facts: {
-          myMon: sw.mon, myTypes, replacedAfter, oppMon: oppSnap.name, oppTypes, oppMove: hit.move, oppMoveType: move.type,
+          myMon: sw.mon, myTypes, replacedAfter, oppMon: oppSnap.name, oppTypes, oppMove: moveRevealed ? hit.move : null, oppMoveType: move.type,
           multiplier, damagePct: hit.damagePct, hpBefore: hit.hpBefore, hpAfter: hit.hpAfter, knockedOut: hit.knockedOut,
           hitTurn: hitTurn.turn, saferOption: { name: safer.name, multiplier: safer.multiplier },
           knowable: true, whyKnowable: why,
