@@ -4,11 +4,16 @@
 // that are sandboxed away from all of that on purpose. They can only talk to us
 // through the channels we open (here: one IPC message, forwarded by panel-preload.js).
 
-const { app, BaseWindow, WebContentsView, Menu, shell } = require('electron');
+const { app, BaseWindow, WebContentsView, Menu, shell, dialog } = require('electron');
 const path = require('path');
 const { attachBattleCapture } = require('./capture');
-const { initLogs, getLogDir, readLog, writeLines } = require('./logs');
-const { initOverlay, layoutOverlay, showOverlay } = require('./review-overlay');
+const { initLogs, getLogDir, readLog, readLogFile, readReviewCache, writeReviewCache, writeLines } = require('./logs');
+const { initOverlay, layoutOverlay, showOverlay, updateOverlay, sendAiStatus } = require('./review-overlay');
+const { addExplanations } = require('./ai');
+const { loadAiConfig, aiIsConfigured } = require('./ai-config');
+const { buildBattle } = require('../core/state');
+const { buildReview } = require('../core/review');
+const { applyCachedExplanations } = require('../core/review-cache');
 
 const SHOWDOWN_URL = 'https://play.pokemonshowdown.com';
 const PANEL_WIDTH = 360;
@@ -22,6 +27,7 @@ let reloadingOnPurpose = false; // true only while our "Reload Showdown" menu it
 // Rooms whose end-of-game card was already triggered, so later frames of the same
 // battle (rating lines, |deinit|) don't pop it up a second time.
 const finishedRooms = new Set();
+let aiToken = 0; // bumped for every card shown, so only the newest card may receive AI text
 
 // ---------------------------------------------------------------------------
 // Window + views (R1, R3)
@@ -159,21 +165,96 @@ function sendResetToPanel(room) {
   panelView.webContents.send('battle-reset', { room });
 }
 
-// Reads the finished battle's log and hands it to the end-of-game card.
+// The one path from "log text" to "card on screen", used both when a real battle ends and
+// by the Dev menu's "Open review for a log file…", so the two can never drift apart.
+// Never throws: a strange log must not crash the app, it just gets an error card.
+function showReviewFromText(room, text, { silentIfSpectated }) {
+  // Every new card invalidates any AI answer still on its way for an older one, even if
+  // this card never asks the AI (spectated, error, cached): the late answer must not replace it.
+  const myToken = ++aiToken;
+  // |request| lines only reach the two players, so no |request| means we were only
+  // spectating this battle: there is nothing of ours to review.
+  if (!text.includes('|request|')) {
+    console.log('[overlay] no |request| in', room, '(spectated?)');
+    if (!silentIfSpectated) showOverlay({ room, spectated: true });
+    return;
+  }
+  try {
+    // The damage calc is synchronous and runs on this process, so measure how long the
+    // whole build blocks the app.
+    const started = Date.now();
+    const review = buildReview(buildBattle(text.split(/\r?\n/)), { room });
+    console.log(`[review] built ${room} in ${Date.now() - started} ms (${review.moments.length} moments)`);
+
+    // Only the AI text is cached, never the review itself: the rules may have changed since.
+    const cached = applyCachedExplanations(review, readReviewCache(room));
+    if (cached) {
+      console.log('[ai] using the saved explanations for', room);
+      showOverlay(cached);
+      return;
+    }
+    showOverlay(review);
+    explainInBackground(room, review, myToken);
+  } catch (err) {
+    console.error('[review] could not build the review for', room, err);
+    showOverlay({ room, error: true });
+  }
+}
+
+// Asks the AI for the words while the card is already on screen. Never throws.
+async function explainInBackground(room, review, myToken) {
+  // Nothing to explain: a summary of "the game ended" is not worth a call and a wait.
+  if (review.moments.length === 0) return;
+
+  const config = loadAiConfig();
+  if (!aiIsConfigured(config)) {
+    console.log('[ai] no key/account id in .env, showing the review without AI text');
+    sendAiStatus('unavailable');
+    return;
+  }
+
+  sendAiStatus('pending');
+  const started = Date.now();
+  const explained = await addExplanations(review, config);
+  console.log(`[ai] ${explained.aiUsed ? 'explained' : 'could not explain'} ${room} in ${Date.now() - started} ms`);
+
+  if (explained.aiUsed) writeReviewCache(room, explained); // failures are not saved, so the next open retries
+  if (myToken !== aiToken) return;
+  if (explained.aiUsed) updateOverlay(explained);
+  else sendAiStatus('unavailable');
+}
+
+// End of a real battle: read what capture saved, then show the card. Spectated games are
+// skipped silently here (nothing popped up before either).
 function showOverlayForRoom(room) {
   const text = readLog(room);
   if (text === null) {
     console.error('[overlay] could not read log for', room);
     return;
   }
-  // |request| lines only reach the two players, so no |request| means we were only
-  // spectating this battle: there is nothing of ours to review.
-  if (!text.includes('|request|')) {
-    console.log('[overlay] no |request| in', room, '(spectated?), skipping');
+  showReviewFromText(room, text, { silentIfSpectated: true });
+}
+
+// Dev menu: review a saved log without playing a battle.
+async function openReviewForLogFile() {
+  const { canceled, filePaths } = await dialog.showOpenDialog(win, {
+    title: 'Open review for a log file',
+    // Dev tool, so start in the saved test logs (the dialog falls back if the folder is missing).
+    defaultPath: path.join(__dirname, '..', '..', 'test-data'),
+    filters: [{ name: 'Battle logs', extensions: ['log'] }],
+    properties: ['openFile'],
+  });
+  if (canceled || filePaths.length === 0) return;
+
+  const file = filePaths[0];
+  const room = path.basename(file, '.log');
+  const text = readLogFile(file);
+  if (text === null) {
+    console.error('[overlay] could not read', file);
+    showOverlay({ room, error: true });
     return;
   }
-  console.log('[overlay] showing for', room);
-  showOverlay(room, text);
+  showReviewFromText(room, text, { silentIfSpectated: false });
 }
 
 // One IPC message per line. panel-preload.js receives it and hands it to the page.
@@ -219,6 +300,7 @@ function buildMenu() {
           accelerator: 'CommandOrControl+R',
           click: reloadShowdown,
         },
+        { label: 'Open review for a log file…', click: openReviewForLogFile },
         { type: 'separator' },
         // mode:'detach' because DevTools cannot dock inside a view of a BaseWindow.
         // Opening DevTools on the Showdown view will detach the capture debugger.

@@ -1,0 +1,84 @@
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  height: 100vh;
+  background: rgba(0, 0, 0, .6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: sans-serif;
+  color: #fff;
+}
+
+/* A flex column with a max height: header and Close stay put, only #moments scrolls,
+   and the card can never be taller than the window. */
+#card {
+  background: #1e1e2e;
+  padding: 24px;
+  border-radius: 12px;
+  width: 560px;
+  max-width: calc(100vw - 32px);
+  max-height: calc(100vh - 48px);
+  display: flex;
+  flex-direction: column;
+}
+
+#content {
+  display: flex;
+  flex-direction: column;
+  min-height: 0; /* lets the flex child shrink so the list can scroll */
+}
+
+#close {
+  align-self: flex-end;
+  margin-top: 16px;
+  padding: 6px 18px;
+}
+
+h2 { margin: 0 0 4px; }
+.sub { margin: 0 0 12px; color: #a6adc8; }
+.counts { margin: 0 0 12px; font-weight: bold; }
+.empty { color: #cdd6f4; line-height: 1.4; }
+.summary { margin: 0 0 12px; color: #cdd6f4; line-height: 1.4; }
+.ai-status { margin: 0 0 12px; color: #a6adc8; font-style: italic; font-size: 14px; }
+
+#moments {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  min-height: 0;
+}
+
+.moment {
+  padding: 10px 12px;
+  margin-bottom: 8px;
+  background: #313244;
+  border-radius: 8px;
+}
+
+.moment-head {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.turn { color: #a6adc8; font-size: 13px; }
+
+/* The badge shows the label as a word; the colour is only a second signal. */
+.badge {
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 12px;
+  font-weight: bold;
+  color: #111;
+}
+.badge.great { background: #5ec8e5; }
+.badge.good { background: #6fcf6f; }
+.badge.mistake { background: #f5a04a; }
+.badge.blunder { background: #f26b6b; }
+
+.moment-title { margin: 6px 0 0; }
+.detail { margin: 4px 0 0; color: #bac2de; font-size: 14px; line-height: 1.4; }
