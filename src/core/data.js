@@ -31,11 +31,13 @@
 //
 //  getMove(gen, name)
 //    -> { name, type, category, basePower, accuracy, priority, selfSwitch, charge, recharge,
-//         selfDestruct, lockedMove, selfDebuff } | null
+//         selfDestruct, lockedMove, selfDebuff, status } | null
 //    category is 'Physical' | 'Special' | 'Status'. accuracy is a number (0 to 100) or
 //    `true` for moves that never miss. The last six are booleans for what the move commits
 //    you to: pivots out, takes a turn to charge, needs a recharge turn, makes the user
-//    faint, locks you in for several turns, lowers your own stats. These are the move's BASE values: moves whose type
+//    faint, locks you in for several turns, lowers your own stats. `status` is the major
+//    status the move inflicts ('par', 'tox'...) or null (Thunder Wave is 'par', Rest is null).
+//    These are the move's BASE values: moves whose type
 //    or power depends on the situation (Tera Blast, Weather Ball, Hidden Power, Judgment,
 //    Low Kick...) are not resolved here. For what a move really did in a battle, use the
 //    `effectiveness` and `damagePct` fields that buildBattle recorded from the log.
@@ -119,6 +121,8 @@ function getMove(gen, name) {
     selfDestruct: !!mv.selfdestruct, // the user faints (Explosion)
     lockedMove: self.volatileStatus === 'lockedmove', // Outrage, Petal Dance
     selfDebuff: !!(self.boosts && Object.values(self.boosts).some((v) => v < 0)), // Close Combat, Overheat
+    // The major status the move inflicts ('par', 'brn', 'psn', 'tox', 'slp', 'frz'), else null.
+    status: mv.status || null,
   };
 }
 

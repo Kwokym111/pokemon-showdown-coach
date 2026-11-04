@@ -24,6 +24,13 @@ const SAMPLE_KEYS = {
   'missed-ko': ['myMon', 'myMove', 'myMoveMinPct', 'myMoveMaxPct', 'betterMove', 'betterMoveMinPct', 'betterMoveMaxPct', 'oppMon', 'oppTypes', 'oppHpPct', 'oppAbilityKnown', 'knowable', 'whyKnowable'],
   'weak-move-choice': ['myMon', 'myMove', 'myMoveMinPct', 'myMoveMaxPct', 'betterMove', 'betterMoveMinPct', 'betterMoveMaxPct', 'oppMon', 'oppTypes', 'oppHpPct', 'oppAbilityKnown', 'knowable', 'whyKnowable'],
   'found-the-ko': ['myMon', 'myMove', 'myMoveMinPct', 'myMoveMaxPct', 'bestOtherMove', 'bestOtherMaxPct', 'oppMon', 'oppTypes', 'oppHpPct', 'knowable', 'whyKnowable'],
+  // Added by docs/task-new-rules.md (no handoff/sample-review.json entry yet; these keys are the contract).
+  'good-tera': ['myMon', 'oldTypes', 'teraType', 'oppMon', 'oppMove', 'oppMoveType', 'oldMultiplier', 'newMultiplier', 'damagePct', 'knowable', 'whyKnowable'],
+  'bad-tera': ['myMon', 'oldTypes', 'teraType', 'oppMon', 'oppMove', 'oppMoveType', 'oldMultiplier', 'newMultiplier', 'damagePct', 'knockedOut', 'knowable', 'whyKnowable'],
+  'move-failed': ['myMon', 'myMove', 'oppMon', 'reason', 'since', 'knowable', 'whyKnowable'],
+  'bad-replacement': ['myMon', 'myTypes', 'replacedAfter', 'oppMon', 'oppTypes', 'oppMove', 'oppMoveType', 'multiplier', 'damagePct', 'hpBefore', 'hpAfter', 'knockedOut', 'hitTurn', 'saferOption', 'knowable', 'whyKnowable'],
+  'low-hp-switch-in': ['myMon', 'hpWhenEntered', 'faintedTurn', 'koBy', 'healthierOption', 'knowable', 'whyKnowable'],
+  'ko-streak': ['myMon', 'count', 'kos', 'knowable', 'whyKnowable'],
 };
 
 function assertShape(review) {

@@ -14,7 +14,13 @@
 //   missed-ko                     another available move surely KOs, I used a different attack -> mistake
 //   weak-move-choice              my attack did far less than another available one   -> mistake / blunder
 //   found-the-ko                  I knocked it out and no other available move could   -> good
-// The last three compare my choice with my other options using damage estimates
+//   good-tera                     I Terastallized into a type that resisted the hit    -> good / great
+//   bad-tera                      I Terastallized into a type weak to the hit and it landed hard -> mistake / blunder
+//   move-failed                   my move could only fail (already in effect / statused) -> mistake
+//   bad-replacement               my replacement (after a faint / pivot) was weak to the obvious hit -> mistake / blunder
+//   low-hp-switch-in              I brought in a low-HP Pokémon and it fell before it moved -> mistake
+//   ko-streak                     one Pokémon got 3+ knockouts in one stay             -> great
+// The three move-choice rules before them compare my choice with my other options using damage estimates
 // (damage.js, Random Battle spreads). They only use what the player could see at the start
 // of the turn, treat the opponent's unknown ability as the worst case, keep a safety margin
 // for its unknown item, and say nothing when the estimate is unavailable.
@@ -34,7 +40,34 @@ const CONFIG = {
   // switched-into-super-effective: share of max HP the incoming Pokémon lost.
   blunderDamagePct: 50, // this much, or a knock-out, is a blunder
   mistakeDamagePct: 25, // this much is a mistake; less than this is not worth flagging
-  labels: { moveIntoImmunity: 'mistake', switchedIntoImmunity: 'great', missedKo: 'mistake', weakMoveChoice: 'mistake', foundTheKo: 'good' },
+  labels: {
+    moveIntoImmunity: 'mistake', switchedIntoImmunity: 'great', missedKo: 'mistake', weakMoveChoice: 'mistake', foundTheKo: 'good',
+    // low-hp-switch-in cannot tell a deliberate sacrifice from a mistake, so the label is tunable.
+    lowHpSwitchIn: 'mistake', moveFailed: 'mistake', goodTera: 'good', greatTera: 'great', koStreak: 'great',
+  },
+
+  // low-hp-switch-in: a switch-in at or below this share of max HP counts as "low", and a
+  // different bench option at or above the other share must have existed (otherwise it may
+  // have been the only sensible choice).
+  lowHpSwitchPct: 30,
+  healthyOptionPct: 50,
+
+  // ko-streak: knockouts by one Pokémon in one stay on the field.
+  koStreakMin: 3,
+
+  // good-tera: the hit must have been at least neutral for the old types and at most resisted
+  // for the Tera type; "great" when the old types were weak to it.
+  teraOldMultiplierMin: 1,
+  teraNewMultiplierMax: 0.5,
+  teraGreatOldMultiplier: 2,
+  // bad-tera: the old types must have taken at most this much from the hit (so the Tera made it worse).
+  badTeraOldMultiplierMax: 1,
+
+  // move-failed (a): moves that fail when they are already in effect. (A move list, not a type chart.)
+  repeatFailMoves: [
+    'Leech Seed', 'Substitute', 'Stealth Rock', 'Sticky Web', 'Reflect', 'Light Screen',
+    'Aurora Veil', 'Tailwind', 'Taunt', 'Yawn',
+  ],
 
   // Move-choice rules (missed-ko, weak-move-choice, found-the-ko). All percentages are of the
   // opponent's MAX HP, like damage.js.
@@ -393,6 +426,411 @@ function moveChoiceRules(ctx, ti) {
 }
 
 // ---------------------------------------------------------------------------
+// Rules 7 and 7b: good-tera, bad-tera
+// ---------------------------------------------------------------------------
+
+// What my Terastallization this turn ran into: the opponent's FIRST damaging move aimed at
+// that Pokémon, if it came after the Tera and could have been foreseen. Shared by good-tera
+// and bad-tera; each rule then decides whether the matchup got better or worse.
+// Returns one entry per qualifying Tera: { tera, hit, move, oppStart, oldTypes, oldMultiplier, newMultiplier, why }.
+function teraSituations(ctx, ti) {
+  const { battle, cfg, gen, me, opp } = ctx;
+  const turn = battle.turns[ti];
+  const mineStart = turn.start[me];
+  const oppStart = turn.start[opp];
+  const out = [];
+  if (!mineStart || !oppStart) return out;
+
+  for (const tera of turn.teras) {
+    if (tera.side !== me || tera.mon !== mineStart.name || !tera.teraType || tera.teraType === 'Stellar') continue;
+    if (mineStart.terastallized) continue;
+
+    // If the opponent was faster, its move hit before the Tera happened and the Tera cannot
+    // take credit or blame for anything, so we stop there.
+    let hit = null;
+    let unknown = false;
+    for (const m of turn.moves) {
+      if (m.side !== opp || !m.target || m.target.side !== me || m.target.mon !== mineStart.name) continue;
+      const d = getMove(gen, m.move);
+      if (!d) { unknown = true; break; }
+      if (d.category === 'Status') continue;
+      hit = m;
+      break;
+    }
+    if (unknown || !hit || hit.seq < tera.seq) continue;
+    if (hit.missed || hit.failed || hit.source || hit.mon !== oppStart.name) continue; // misses are luck; a switch-in is unknowable
+    if (cfg.situationalTypeMoves.includes(hit.move)) continue;
+
+    const move = getMove(gen, hit.move);
+    const oppTypes = currentTypes(gen, oppStart);
+    const oldTypes = currentTypes(gen, mineStart); // turn.start: before this Tera
+    if (!move || !oppTypes || !oldTypes) continue;
+    const oldMultiplier = typeMultiplier(gen, move.type, oldTypes);
+    const newMultiplier = typeMultiplier(gen, move.type, [tera.teraType]);
+    if (oldMultiplier === null || newMultiplier === null) continue;
+    const why = whyMoveKnowable(battle, ti, opp, oppStart, hit.move, move.type, oppTypes);
+    if (!why) continue;
+    out.push({ tera, hit, move, oppStart, oldTypes, oldMultiplier, newMultiplier, why });
+  }
+  return out;
+}
+
+function goodTera(ctx, ti) {
+  const { battle, cfg } = ctx;
+  const turn = battle.turns[ti];
+  const out = [];
+  for (const s of teraSituations(ctx, ti)) {
+    const { tera, hit, move, oppStart, oldTypes, oldMultiplier, newMultiplier } = s;
+    if (hit.effectiveness !== 'resisted' && !(hit.effectiveness === 'immune' && !hit.immuneBy)) continue;
+    if (oldMultiplier < cfg.teraOldMultiplierMin || newMultiplier > cfg.teraNewMultiplierMax) continue;
+    // The log and the data must agree (resisted means below 1, immune means 0).
+    if (hit.effectiveness === 'immune' ? newMultiplier !== 0 : newMultiplier === 0) continue;
+
+    const great = oldMultiplier >= cfg.teraGreatOldMultiplier;
+    out.push({
+      seq: tera.seq,
+      moment: {
+        turn: turn.turn, rule: 'good-tera', label: great ? cfg.labels.greatTera : cfg.labels.goodTera,
+        mon: tera.mon, title: 'Terastallized into a type that resisted the hit', explanation: null,
+        facts: {
+          myMon: tera.mon, oldTypes, teraType: tera.teraType,
+          oppMon: oppStart.name, oppMove: hit.move, oppMoveType: move.type,
+          oldMultiplier, newMultiplier, damagePct: hit.damagePct,
+          knowable: true, whyKnowable: s.why,
+        },
+      },
+    });
+  }
+  return out;
+}
+
+// The mirror of good-tera: I Terastallized into a type that is weak to a hit the opponent was
+// likely to make, and it landed hard. A Tera is optional, so there is no "better option" check;
+// the damage thresholds (shared with the switch rules) keep small hits out. The old types must
+// NOT already have been weak to it, otherwise the Tera did not make anything worse. Caveat: the
+// player may have Terastallized to power up an attack, which the log cannot show.
+function badTera(ctx, ti) {
+  const { battle, cfg } = ctx;
+  const turn = battle.turns[ti];
+  const out = [];
+  for (const s of teraSituations(ctx, ti)) {
+    const { tera, hit, move, oppStart, oldTypes, oldMultiplier, newMultiplier } = s;
+    if (hit.effectiveness !== 'super') continue;
+    if (newMultiplier < 2 || oldMultiplier > cfg.badTeraOldMultiplierMax) continue; // log and data must agree
+    let label = null;
+    if (hit.knockedOut || hit.damagePct >= cfg.blunderDamagePct) label = 'blunder';
+    else if (hit.damagePct >= cfg.mistakeDamagePct) label = 'mistake';
+    if (!label) continue;
+
+    out.push({
+      seq: tera.seq,
+      moment: {
+        turn: turn.turn, rule: 'bad-tera', label,
+        mon: tera.mon, title: 'Terastallized into a type that was weak to the hit', explanation: null,
+        facts: {
+          myMon: tera.mon, oldTypes, teraType: tera.teraType,
+          oppMon: oppStart.name, oppMove: hit.move, oppMoveType: move.type,
+          oldMultiplier, newMultiplier, damagePct: hit.damagePct, knockedOut: hit.knockedOut,
+          knowable: true, whyKnowable: s.why,
+        },
+      },
+    });
+  }
+  return out;
+}
+
+// ---------------------------------------------------------------------------
+// Rule 8: move-failed
+// ---------------------------------------------------------------------------
+
+const STATUS_WORDS = { par: 'paralyzed', brn: 'burned', psn: 'poisoned', tox: 'badly poisoned', slp: 'asleep', frz: 'frozen' };
+
+// For "already in effect": the turn and seq of the latest SUCCESSFUL use of `move` by this
+// Pokémon before turn `ti`, or null if there is none or something ended / moved it since.
+// Neither Pokémon may have left the field in between, and no `-end` / `-sideend` line may
+// name the move (that would mean the effect was over and the failure has another cause).
+function stillActiveSince(battle, ti, me, opp, name, oppName, moveName) {
+  let found = null;
+  for (let j = ti - 1; j >= 1 && !found; j--) {
+    for (const m of battle.turns[j].moves) {
+      if (m.side === me && m.mon === name && m.move === moveName && !m.failed && !m.missed && !m.source) found = { j, seq: m.seq };
+    }
+  }
+  if (!found) return null;
+  const moveText = (a) => typeof a === 'string' && a.replace(/^move: /, '') === moveName;
+  for (let j = found.j; j <= ti; j++) {
+    const t = battle.turns[j];
+    for (const e of t.events) {
+      if (j === found.j && e.seq <= found.seq) continue;
+      if ((e.type === 'switch' || e.type === 'drag') && (e.side === me || e.side === opp)) return null;
+      if ((e.type === 'end' || e.type === 'sideend') && Array.isArray(e.args) && e.args.some(moveText)) return null;
+    }
+  }
+  return found.j;
+}
+
+function moveFailed(ctx, ti) {
+  const { battle, cfg, gen, me, opp } = ctx;
+  const turn = battle.turns[ti];
+  const mine = turn.start[me];
+  const oppStart = turn.start[opp];
+  const out = [];
+  if (!mine || !oppStart) return out;
+
+  for (const mv of turn.moves) {
+    // A miss, a Sleep Talk call or anything else not chosen is not judged. (`mv.target` is
+    // empty on a failed move, so the target is whoever the opponent had out at turn start.)
+    if (mv.side !== me || !mv.failed || mv.missed || mv.source || mv.mon !== mine.name) continue;
+    if (turn.switches.some((s) => s.side === opp && s.seq < mv.seq)) continue; // chose against a different Pokémon
+    const move = getMove(gen, mv.move);
+    if (!move) continue;
+
+    let reason = null;
+    let since = null;
+    let why = null;
+    const inPlay = inPlayText(battle, ti, opp, oppStart);
+
+    if (cfg.repeatFailMoves.includes(mv.move)) {
+      const j = stillActiveSince(battle, ti, me, opp, mine.name, oppStart.name, mv.move);
+      if (j !== null) {
+        reason = 'already-active';
+        since = j;
+        why = `${mine.name} had already used ${mv.move} successfully on turn ${j}, and neither ${mine.name} nor ${oppStart.name} had left the field since`;
+      }
+    } else if (move.category === 'Status' && move.status && oppStart.status) {
+      // A named target, if the line has one, must be the Pokémon that was out at turn start.
+      if (mv.target && (mv.target.side !== opp || mv.target.mon !== oppStart.name)) continue;
+      reason = 'already-statused';
+      since = oppStart.status;
+      why = `${inPlay} and was already ${STATUS_WORDS[oppStart.status] || oppStart.status} at the start of the turn`;
+    }
+    if (!reason) continue;
+
+    out.push({
+      seq: mv.seq,
+      moment: {
+        turn: turn.turn, rule: 'move-failed', label: cfg.labels.moveFailed,
+        mon: mv.mon, title: 'Used a move that could only fail', explanation: null,
+        facts: {
+          myMon: mv.mon, myMove: mv.move, oppMon: oppStart.name, reason, since,
+          knowable: true, whyKnowable: why,
+        },
+      },
+    });
+  }
+  return out;
+}
+
+// ---------------------------------------------------------------------------
+// Rules 9 and 10: replacements (bad-replacement, low-hp-switch-in)
+// ---------------------------------------------------------------------------
+
+// My switch-ins in a turn that I did NOT choose at the start of it: after one of my Pokémon
+// fainted, or after my own pivot (U-turn, Volt Switch...). Each comes with the bench I could
+// pick from (the |request| the game sent me). Item-triggered exits (Eject Button) and
+// Roar/Whirlwind drags are not my decision, so they are left out. Two replacements in one
+// turn would share one request list, so such a turn is not judged.
+function replacementsOf(ctx, ti) {
+  const { battle, gen, me } = ctx;
+  const turn = battle.turns[ti];
+  if (!turn.forceSwitch) return [];
+  const mine = turn.switches.filter((s) => s.side === me && s.type === 'switch' && !s.forced && !chosenSwitches(turn, me).includes(s));
+  if (mine.length !== 1) return [];
+  const sw = mine[0];
+  const options = turn.forceSwitch.switchOptions.filter((o) => o.name !== sw.mon);
+
+  if (!sw.source && sw.from && turn.faints.some((f) => f.side === me && f.mon === sw.from && f.seq < sw.seq)) {
+    return [{ sw, replacedAfter: 'faint', options }];
+  }
+  const pivot = sw.source && getMove(gen, sw.source);
+  if (pivot && pivot.selfSwitch) return [{ sw, replacedAfter: pivot.name, options }];
+  return [];
+}
+
+const aimedAt = (m, side, name) => !!m.target && m.target.side === side && m.target.mon === name;
+
+function badReplacement(ctx, ti) {
+  const { battle, cfg, gen, me, opp } = ctx;
+  const turn = battle.turns[ti];
+  const out = [];
+
+  for (const { sw, replacedAfter, options } of replacementsOf(ctx, ti)) {
+    // Who the opponent had out when I picked. After a faint I pick at the end of the turn; after
+    // a pivot I pick mid-turn, and a switch or faint on their side would make that unclear.
+    if (turn.faints.some((f) => f.side === opp)) continue;
+    if (replacedAfter !== 'faint' && turn.switches.some((s) => s.side === opp)) continue;
+    const oppAtPick = replacedAfter === 'faint' ? turn.end && turn.end[opp] : turn.start[opp];
+    if (!oppAtPick) continue;
+
+    // The first opposing move aimed at the replacement: later in this turn (pivot), else next turn.
+    let hit = turn.moves.find((m) => m.side === opp && m.seq > sw.seq && aimedAt(m, me, sw.mon));
+    let hitTi = ti;
+    if (!hit) {
+      const next = battle.turns[ti + 1];
+      if (!next || !next.start || !next.start[opp] || next.start[opp].name !== oppAtPick.name) continue;
+      hit = next.moves.find((m) => m.side === opp && aimedAt(m, me, sw.mon));
+      hitTi = ti + 1;
+    }
+    if (!hit || hit.missed || hit.failed || hit.source || hit.mon !== oppAtPick.name) continue;
+    if (hit.effectiveness !== 'super' || cfg.situationalTypeMoves.includes(hit.move)) continue;
+    // A Tera on my side before the hit changes the types the log's "super effective" refers to.
+    const hitTurn = battle.turns[hitTi];
+    if (hitTurn.teras.some((t) => t.side === me && t.mon === sw.mon && t.seq < hit.seq)) continue;
+
+    const oppSnap = hitTi === ti && replacedAfter !== 'faint' ? turn.start[opp] : turn.end[opp];
+    const move = getMove(gen, hit.move);
+    const oppTypes = currentTypes(gen, oppSnap);
+    const inc = incomingMon(battle, ti, me, sw.mon);
+    const myTypes = inc && currentTypes(gen, inc);
+    if (!move || !oppTypes || !myTypes) continue;
+    const multiplier = typeMultiplier(gen, move.type, myTypes);
+    if (!(multiplier >= 2)) continue; // the log and the data must agree
+
+    const why = whyMoveKnowable(battle, hitTi, opp, oppSnap, hit.move, move.type, oppTypes);
+    if (!why) continue;
+
+    let label = null;
+    if (hit.knockedOut || hit.damagePct >= cfg.blunderDamagePct) label = 'blunder';
+    else if (hit.damagePct >= cfg.mistakeDamagePct) label = 'mistake';
+    if (!label) continue;
+
+    // Fairness: it is only a mistake if a bench Pokémon would have taken a normal hit or less.
+    let safer = null;
+    for (const o of options) {
+      const mon = incomingMon(battle, ti, me, o.name) || { species: o.species, terastallized: false, teraType: null, typeOverride: null, transformedInto: null };
+      const types = currentTypes(gen, mon);
+      const mult = types && typeMultiplier(gen, move.type, types);
+      if (mult === null || mult === undefined || mult > 1) continue;
+      // Name the healthiest safe option (a 25% HP Pokémon is a poor thing to recommend), then the safest matchup.
+      if (!safer || o.hpPct > safer.hpPct || (o.hpPct === safer.hpPct && mult < safer.multiplier)) safer = { name: o.name, multiplier: mult, hpPct: o.hpPct };
+    }
+    if (!safer) continue;
+
+    out.push({
+      seq: sw.seq,
+      moment: {
+        turn: turn.turn, rule: 'bad-replacement', label,
+        mon: sw.mon, title: 'Sent in a Pokémon that was weak to the obvious hit', explanation: null,
+        facts: {
+          myMon: sw.mon, myTypes, replacedAfter, oppMon: oppSnap.name, oppTypes, oppMove: hit.move, oppMoveType: move.type,
+          multiplier, damagePct: hit.damagePct, hpBefore: hit.hpBefore, hpAfter: hit.hpAfter, knockedOut: hit.knockedOut,
+          hitTurn: hitTurn.turn, saferOption: { name: safer.name, multiplier: safer.multiplier },
+          knowable: true, whyKnowable: why,
+        },
+      },
+    });
+  }
+  return out;
+}
+
+// Any switch-in of mine that was a choice: at the start of a turn, after a faint, or after a pivot.
+function myChoiceSwitchIns(ctx, ti) {
+  const { battle, me } = ctx;
+  const turn = battle.turns[ti];
+  const out = replacementsOf(ctx, ti);
+  const options = turn.available ? turn.available.switchOptions : null;
+  if (options) {
+    for (const sw of chosenSwitches(turn, me)) out.push({ sw, replacedAfter: null, options: options.filter((o) => o.name !== sw.mon) });
+  }
+  return out;
+}
+
+// What happened to a Pokémon after it came in: it fainted before using a move (-> the faint
+// event and the turn), or it did something else first / left alive (-> null).
+function fellBeforeActing(ctx, ti, sw) {
+  const { battle, me } = ctx;
+  for (let j = ti; j < battle.turns.length; j++) {
+    for (const e of battle.turns[j].events) {
+      if (j === ti && e.seq <= sw.seq) continue;
+      if (e.side !== me) continue;
+      if (e.type === 'move' && e.mon === sw.mon) return null;
+      if ((e.type === 'switch' || e.type === 'drag')) return null;
+      if (e.type === 'faint' && e.mon === sw.mon) return { turn: battle.turns[j], faint: e };
+    }
+  }
+  return null;
+}
+
+function lowHpSwitchIn(ctx, ti, flagged) {
+  const { battle, cfg, me, opp } = ctx;
+  const turn = battle.turns[ti];
+  const out = [];
+
+  for (const { sw, options } of myChoiceSwitchIns(ctx, ti)) {
+    if (typeof sw.hpPct !== 'number' || sw.hpPct > cfg.lowHpSwitchPct) continue;
+    if (flagged.has(`${turn.turn}|${sw.mon}`)) continue; // bad-replacement already covers this switch-in
+    const healthy = options.filter((o) => typeof o.hpPct === 'number' && o.hpPct >= cfg.healthyOptionPct);
+    if (!healthy.length) continue; // no good alternative, so it may have been forced
+    const better = healthy.reduce((b, o) => (o.hpPct > b.hpPct ? o : b));
+
+    const fell = fellBeforeActing(ctx, ti, sw);
+    if (!fell) continue;
+    // Only a knockout by an opposing move can be explained; poison, hazards and the like are not judged.
+    const ko = fell.turn.moves.filter((m) => m.side === opp && m.knockedOut && aimedAt(m, me, sw.mon) && m.seq < fell.faint.seq).pop();
+    if (!ko) continue;
+
+    out.push({
+      seq: sw.seq,
+      moment: {
+        turn: turn.turn, rule: 'low-hp-switch-in', label: cfg.labels.lowHpSwitchIn,
+        mon: sw.mon, title: 'Brought in a low-HP Pokémon that fell before it could move', explanation: null,
+        facts: {
+          myMon: sw.mon, hpWhenEntered: sw.hpPct, faintedTurn: fell.turn.turn,
+          koBy: { oppMon: ko.mon, move: ko.move }, healthierOption: { name: better.name, hpPct: better.hpPct },
+          knowable: true,
+          whyKnowable: `${sw.mon} came in at ${sw.hpPct}% HP while ${better.name} was at ${better.hpPct}%, and it was knocked out by ${ko.mon}'s ${ko.move} on turn ${fell.turn.turn} before it used a move`,
+        },
+      },
+    });
+  }
+  return out;
+}
+
+// ---------------------------------------------------------------------------
+// Rule 11: ko-streak
+// ---------------------------------------------------------------------------
+
+// Walks the whole battle once. A "stay" starts when one of my Pokémon comes onto the field and
+// ends when it is replaced or faints. Only knockouts from its own moves count (`knockedOut`
+// is only set by direct move damage, never by burn, hazards or recoil).
+function koStreaks(ctx) {
+  const { battle, cfg, me } = ctx;
+  const stays = [];
+  let cur = null;
+  const close = () => { if (cur) stays.push(cur); cur = null; };
+
+  battle.turns.forEach((turn) => {
+    for (const e of turn.events) {
+      if (e.side !== me) continue;
+      if (e.type === 'switch' || e.type === 'drag') { close(); cur = { mon: e.mon, fromTurn: turn.turn, kos: [] }; }
+      else if (e.type === 'faint') { if (cur && cur.mon === e.mon) close(); }
+      else if (e.type === 'move' && cur && e.mon === cur.mon && e.knockedOut && e.target) {
+        cur.kos.push({ turn: turn.turn, oppMon: e.target.mon, move: e.move, seq: e.seq });
+      }
+    }
+  });
+  close();
+
+  return stays.filter((s) => s.kos.length >= cfg.koStreakMin).map((s) => {
+    const last = s.kos[s.kos.length - 1];
+    const since = s.fromTurn === 0 ? 'the start of the battle' : `turn ${s.fromTurn}`;
+    return {
+      seq: last.seq,
+      streak: s,
+      moment: {
+        turn: last.turn, rule: 'ko-streak', label: cfg.labels.koStreak,
+        mon: s.mon, title: 'Knockout streak', explanation: null,
+        facts: {
+          myMon: s.mon, count: s.kos.length, kos: s.kos.map(({ turn, oppMon, move }) => ({ turn, oppMon, move })),
+          knowable: true,
+          whyKnowable: `${s.mon} stayed on the field from ${since} and knocked out ${s.kos.length} opposing Pokémon with its own moves`,
+        },
+      },
+    };
+  });
+}
+
+// ---------------------------------------------------------------------------
 // Entry point
 // ---------------------------------------------------------------------------
 
@@ -426,8 +864,27 @@ function buildReview(battle, { room = null, config } = {}) {
   // Turn 0 is the lead-in (the first switch-ins): nothing was decided there.
   for (let ti = 1; ti < battle.turns.length; ti++) {
     if (!battle.turns[ti].start) continue;
-    found.push(...moveIntoImmunity(ctx, ti), ...switchRules(ctx, ti), ...moveChoiceRules(ctx, ti));
+    found.push(...moveIntoImmunity(ctx, ti), ...switchRules(ctx, ti), ...moveChoiceRules(ctx, ti), ...goodTera(ctx, ti), ...badTera(ctx, ti), ...moveFailed(ctx, ti));
   }
+
+  // The replacement rules run after the main loop because low-hp-switch-in must know which
+  // switch-ins bad-replacement already flagged (one moment per mistake).
+  const bad = [];
+  for (let ti = 1; ti < battle.turns.length; ti++) {
+    if (battle.turns[ti].start) bad.push(...badReplacement(ctx, ti));
+  }
+  found.push(...bad);
+  const flagged = new Set(bad.map((f) => `${f.moment.turn}|${f.moment.mon}`));
+  for (let ti = 1; ti < battle.turns.length; ti++) {
+    if (battle.turns[ti].start) found.push(...lowHpSwitchIn(ctx, ti, flagged));
+  }
+
+  // A streak replaces the individual found-the-ko moments inside it (they are listed in its facts).
+  const streaks = koStreaks(ctx);
+  const inStreak = (m) => m.rule === 'found-the-ko' && streaks.some((s) => s.streak.mon === m.mon && s.streak.kos.some((k) => k.turn === m.turn));
+  const kept = found.filter((f) => !inStreak(f.moment));
+  found.length = 0;
+  found.push(...kept, ...streaks);
   // Turns are already in order; seq orders moments within a turn.
   found.sort((a, b) => a.moment.turn - b.moment.turn || a.seq - b.seq);
   review.moments = found.map((f) => f.moment);

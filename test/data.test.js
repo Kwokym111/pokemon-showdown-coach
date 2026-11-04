@@ -28,6 +28,14 @@ test('getSpecies / getMove: unknown names return null, never throw', () => {
   assert.strictEqual(data.getSpecies(9, undefined), null);
 });
 
+test('getMove: status is the major status a move inflicts, else null', () => {
+  assert.strictEqual(data.getMove(9, 'Thunder Wave').status, 'par');
+  assert.strictEqual(data.getMove(9, 'Toxic').status, 'tox');
+  assert.strictEqual(data.getMove(9, 'Will-O-Wisp').status, 'brn');
+  assert.strictEqual(data.getMove(9, 'Rest').status, null); // heals itself, inflicts nothing on a target
+  assert.strictEqual(data.getMove(9, 'Close Combat').status, null);
+});
+
 test('getMove: basics, forgiving names, per-generation category', () => {
   const cc = data.getMove(9, 'Close Combat');
   assert.deepStrictEqual(
