@@ -4,21 +4,43 @@
   <meta charset="utf-8">
   <title>Panel</title>
   <!-- Strict CSP: only our own script file may run (no inline scripts). Extra safety in
-       case something ever sneaks HTML into the panel. -->
-  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'unsafe-inline'">
+       case something ever sneaks HTML into the panel.
+       style-src needs 'self' so the per-area .css files below can load; 'unsafe-inline'
+       stays for the shared <style> block here. -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'">
+  <!-- One CSS + one JS file per area, so two people never edit the same file. -->
+  <link rel="stylesheet" href="panel-live.css">
+  <link rel="stylesheet" href="panel-review.css">
   <style>
+    /* Shared layout only. Area-specific styling goes in that area's own .css file. */
     html, body { margin: 0; height: 100%; }
-    body { display: flex; flex-direction: column; font-family: sans-serif; background: #1e1e24; color: #eee; padding: 10px; box-sizing: border-box; }
+    body { display: flex; flex-direction: column; font-family: sans-serif; background: #1e1e24; color: #eee; padding: 10px; box-sizing: border-box; gap: 10px; }
     h1 { font-size: 16px; margin: 0 0 8px; }
     .stat { font-size: 13px; margin: 2px 0; }
-    #log { flex: 1; margin-top: 8px; overflow-y: auto; background: #111; padding: 6px; font: 11px/1.4 Consolas, monospace; white-space: pre-wrap; word-break: break-all; }
+    /* min-height:0 lets this flex child shrink below its content so it scrolls instead of overflowing. */
+    #review { flex: 1; min-height: 0; overflow-y: auto; }
+    #debug summary { cursor: pointer; font-size: 14px; font-weight: bold; }
+    /* Fixed height: inside a <details> there is no "remaining space" for flex:1 to fill. */
+    #log { height: 220px; margin-top: 8px; overflow-y: auto; background: #111; padding: 6px; font: 11px/1.4 Consolas, monospace; white-space: pre-wrap; word-break: break-all; }
   </style>
 </head>
 <body>
-  <h1>Battle capture</h1>
-  <div class="stat">Lines captured: <span id="count">0</span></div>
-  <div class="stat">Room: <span id="room">(none yet)</span></div>
-  <div id="log"></div>
+  <!-- Top: live info (Faysal) -->
+  <section id="live">Live info: waiting for a battle</section>
+
+  <!-- Middle: post-game review (Kym) -->
+  <section id="review">Your review will appear here after a battle.</section>
+
+  <!-- Bottom: the original capture view, collapsed by default -->
+  <details id="debug">
+    <summary>Battle capture</summary>
+    <div class="stat">Lines captured: <span id="count">0</span></div>
+    <div class="stat">Room: <span id="room">(none yet)</span></div>
+    <div id="log"></div>
+  </details>
+
   <script src="panel.js"></script>
+  <script src="panel-live.js"></script>
+  <script src="panel-review.js"></script>
 </body>
 </html>

@@ -8,9 +8,16 @@ const { app, BaseWindow, WebContentsView, Menu, shell, dialog } = require('elect
 const path = require('path');
 const { attachBattleCapture } = require('./capture');
 const { initLogs, getLogDir, readLog, readLogFile, readReviewCache, writeReviewCache, writeLines } = require('./logs');
-const { initOverlay, layoutOverlay, showOverlay, updateOverlay, sendAiStatus } = require('./review-overlay');
+// Renamed on import: showOverlay / updateOverlay / sendAiStatus are defined again below as
+// wrappers that feed the popup card AND the panel's review section, so every existing call
+// site in this file updates both without being touched.
+const {
+  initOverlay, layoutOverlay,
+  showOverlay: showCard, updateOverlay: updateCard, sendAiStatus: sendCardStatus,
+} = require('./review-overlay');
 const { addExplanations } = require('./ai');
 const { loadAiConfig, aiIsConfigured } = require('./ai-config');
+const liveInfo = require('./live-info');
 const { buildBattle } = require('../core/state');
 const { buildReview } = require('../core/review');
 const { applyCachedExplanations } = require('../core/review-cache');
@@ -99,6 +106,12 @@ function createWindow() {
       finishedRooms.delete(room);
     }
     sendToPanel(room, lines);
+    // Live panel info. Wrapped so a bug there can never stop log writing or the review card.
+    try {
+      sendLiveInfoToPanel(room, liveInfo.handleLines(room, lines, { fresh }));
+    } catch (err) {
+      console.error('[live-info] could not update the live panel:', err.message);
+    }
 
     if (!finishedRooms.has(room) && lines.some((l) => /^\|(win|tie)\b/.test(l))) {
       finishedRooms.add(room);
@@ -263,6 +276,37 @@ function sendToPanel(room, lines) {
   for (const line of lines) {
     panelView.webContents.send('battle-line', { room, line });
   }
+}
+
+// The panel's review section gets the same payloads as the popup card. Unlike the card's
+// own update functions it does NOT check "is the card still open": the panel stays on
+// screen, so an AI answer arriving after you closed the popup must still land there.
+function sendToPanelReview(channel, payload) {
+  if (!panelView || panelView.webContents.isDestroyed()) return;
+  panelView.webContents.send(channel, payload);
+}
+
+// payload: the review object, or { room, error: true } / { room, spectated: true }.
+function showOverlay(payload) {
+  showCard(payload);
+  sendToPanelReview('review-ready', payload);
+}
+
+function updateOverlay(payload) {
+  updateCard(payload);
+  sendToPanelReview('review-ready', payload);
+}
+
+// state: 'pending' | 'unavailable'
+function sendAiStatus(state) {
+  sendCardStatus(state);
+  sendToPanelReview('review-ai-status', state);
+}
+
+// One message per frame on 'live-info'. info is a plain object, or null meaning "clear".
+function sendLiveInfoToPanel(room, info) {
+  if (!panelView || panelView.webContents.isDestroyed()) return;
+  panelView.webContents.send('live-info', { room, info });
 }
 
 // ---------------------------------------------------------------------------
