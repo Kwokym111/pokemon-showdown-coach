@@ -3,15 +3,14 @@
 <head>
   <meta charset="utf-8">
   <title>Review</title>
-  <!-- Same strict CSP as the panel: only our own script file may run (no inline scripts
-       or onclick attributes). Extra safety once this card shows names from the server. -->
-  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'unsafe-inline'">
+  <!-- Strict CSP: only our own script and stylesheet files (no inline scripts, onclick
+       attributes or style attributes). Extra safety since this card shows names from the server. -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'">
+  <link rel="stylesheet" href="overlay.css">
 </head>
-<body style="margin:0;height:100vh;background:rgba(0,0,0,.6);display:flex;
-             align-items:center;justify-content:center;font-family:sans-serif;color:#fff">
-  <div style="background:#1e1e2e;padding:32px;border-radius:12px;width:480px">
-    <h2>Game over</h2>
-    <p id="status">Analyzing your game…</p>
+<body>
+  <div id="card">
+    <div id="content"><p>Analyzing your game…</p></div>
     <button id="close">Close</button>
   </div>
   <script src="overlay.js"></script>

@@ -15,4 +15,18 @@ contextBridge.exposeInMainWorld('panelAPI', {
   onReset: (callback) => {
     ipcRenderer.on('battle-reset', (_event, data) => callback(data));
   },
+  // callback receives the review object (or { room, error } / { room, spectated }),
+  // the same payload the popup card gets.
+  onReview: (callback) => {
+    ipcRenderer.on('review-ready', (_event, data) => callback(data));
+  },
+  // callback receives 'pending' or 'unavailable' (state of the AI explanations)
+  onReviewAiStatus: (callback) => {
+    ipcRenderer.on('review-ai-status', (_event, state) => callback(state));
+  },
+  // callback receives { room, info }. info is a plain object to show, or null meaning
+  // "clear the live section" (one channel for both, so no separate reset listener).
+  onLiveInfo: (callback) => {
+    ipcRenderer.on('live-info', (_event, data) => callback(data));
+  },
 });

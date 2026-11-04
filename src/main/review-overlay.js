@@ -4,6 +4,7 @@ const RENDERER_DIR = path.join(__dirname, '..', 'renderer');
 
 let overlayView = null;
 let overlayWin = null;
+let overlayVisible = false; // tracked here so late AI results know whether the card is still open
 
 function initOverlay(win) {
   overlayWin = win;
@@ -36,16 +37,33 @@ function layoutOverlay() {
   overlayView.setBounds({ x: 0, y: 0, width, height });
 }
 
-function showOverlay(room, log) {
+// payload is the review object from buildReview, or { room, error: true } /
+// { room, spectated: true } when there is no review to show. The page decides how to draw each.
+function showOverlay(payload) {
   if (!overlayView) return;
   layoutOverlay();
   overlayWin.contentView.addChildView(overlayView); // re-adding moves it to the top
   overlayView.setVisible(true);
-  overlayView.webContents.send('battle-log', { room, log });
+  overlayVisible = true;
+  overlayView.webContents.send('review-ready', payload);
+}
+
+// Replaces what the open card shows (used when the AI text arrives). Does nothing if the
+// user already closed the card: a late answer must not pop it back up.
+function updateOverlay(payload) {
+  if (!overlayView || !overlayVisible || overlayView.webContents.isDestroyed()) return;
+  overlayView.webContents.send('review-ready', payload);
+}
+
+// state: 'pending' (AI text is being written) or 'unavailable' (it will not arrive).
+function sendAiStatus(state) {
+  if (!overlayView || !overlayVisible || overlayView.webContents.isDestroyed()) return;
+  overlayView.webContents.send('ai-status', state);
 }
 
 function hideOverlay() {
   if (overlayView) overlayView.setVisible(false);
+  overlayVisible = false;
 }
 
-module.exports = { initOverlay, layoutOverlay, showOverlay, hideOverlay };
+module.exports = { initOverlay, layoutOverlay, showOverlay, updateOverlay, sendAiStatus, hideOverlay };

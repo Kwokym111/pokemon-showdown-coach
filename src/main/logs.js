@@ -29,16 +29,51 @@ function readLinesIfExists(file) {
 // The single place that turns a room id into a file path, so writing and reading a log
 // can never disagree about the name.
 function getLogPath(room) {
-  // The room id comes from a remote server, so never trust it as a file name:
-  // strip anything except letters, digits, "-" and "_" (blocks "../" tricks).
-  const safe = room.replace(/[^A-Za-z0-9_-]/g, '_');
-  return path.join(logDir, `${safe}.log`);
+  return path.join(logDir, `${safeName(room)}.log`);
+}
+
+// The room id comes from a remote server, so never trust it as a file name:
+// strip anything except letters, digits, "-" and "_" (blocks "../" tricks).
+function safeName(room) {
+  return room.replace(/[^A-Za-z0-9_-]/g, '_');
+}
+
+// The AI-explained review is saved next to the log as <room>.review.json.
+function getReviewCachePath(room) {
+  return path.join(logDir, `${safeName(room)}.review.json`);
+}
+
+// Returns the saved review object, or null if there is none or the file is unreadable.
+function readReviewCache(room) {
+  try {
+    return JSON.parse(fs.readFileSync(getReviewCachePath(room), 'utf8'));
+  } catch {
+    return null;
+  }
+}
+
+function writeReviewCache(room, review) {
+  try {
+    fs.writeFileSync(getReviewCachePath(room), JSON.stringify(review, null, 2));
+  } catch (err) {
+    console.error('[review] could not save the review cache:', err.message);
+  }
 }
 
 // Returns the room's whole log as text, or null if there is no file for it yet.
 function readLog(room) {
   try {
     return fs.readFileSync(getLogPath(room), 'utf8');
+  } catch {
+    return null;
+  }
+}
+
+// Reads any log file the user picked (Dev menu). Unlike readLog, the path is not built
+// from a room id: it comes from a file dialog the user controls, so it is used as given.
+function readLogFile(filePath) {
+  try {
+    return fs.readFileSync(filePath, 'utf8');
   } catch {
     return null;
   }
@@ -65,4 +100,4 @@ function writeLines(room, lines) {
   return { fresh: false };
 }
 
-module.exports = { initLogs, getLogDir, getLogPath, readLog, writeLines };
+module.exports = { initLogs, getLogDir, getLogPath, readLog, readLogFile, readReviewCache, writeReviewCache, writeLines };

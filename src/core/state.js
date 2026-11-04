@@ -289,7 +289,11 @@ function onRequest(s, { args }) {
     mon.moveset = p.moves || null;
     mon.plannedTera = p.teraType || null;
     if (!p.active) setCondition(s, mon, p.condition); // active ones are tracked by the log lines
-    if (!p.active && !mon.fainted) bench.push({ name: mon.name, species: mon.species, hpPct: mon.hpPct, status: mon.status });
+    // `item` is my own item id (e.g. "weaknesspolicy") as it is when I choose. It has to be saved
+    // here: after the item is used up, `mon.item` is cleared and the log alone cannot tell us.
+    // `ability` is saved for the same reason: risky-switch asks the damage calc whether a bench
+    // Pokémon is immune to a move through its own ability (Levitate, Volt Absorb...).
+    if (!p.active && !mon.fainted) bench.push({ name: mon.name, species: mon.species, hpPct: mon.hpPct, status: mon.status, item: p.item || null, ability: p.ability || null });
   }
 
   if (req.forceSwitch) {

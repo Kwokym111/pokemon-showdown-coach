@@ -1,0 +1,26 @@
+/* Styles for the #review section of the panel. Kym's file.
+   Everything is under #review so it cannot clash with the live or debug sections. */
+#review { font-size: 13px; }
+
+#review h2 { margin: 0 0 4px; font-size: 16px; }
+#review .sub { margin: 0 0 8px; color: #a6adc8; }
+#review .counts { margin: 0 0 8px; font-weight: bold; }
+#review .empty { color: #cdd6f4; line-height: 1.4; }
+#review .summary { margin: 0 0 10px; color: #cdd6f4; line-height: 1.4; }
+#review .ai-status { margin: 0 0 10px; color: #a6adc8; font-style: italic; }
+
+#review .moments { list-style: none; margin: 0; padding: 0; }
+
+#review .moment { padding: 8px 10px; margin-bottom: 8px; background: #313244; border-radius: 8px; }
+#review .moment-head { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+#review .turn { color: #a6adc8; font-size: 12px; }
+
+/* The badge shows the label as a word; the colour is only a second signal. */
+#review .badge { padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: bold; color: #111; }
+#review .badge.great { background: #5ec8e5; }
+#review .badge.good { background: #6fcf6f; }
+#review .badge.mistake { background: #f5a04a; }
+#review .badge.blunder { background: #f26b6b; }
+
+#review .moment-title { margin: 6px 0 0; }
+#review .detail { margin: 4px 0 0; color: #bac2de; line-height: 1.4; }
