@@ -19,7 +19,8 @@
 //   move-failed                   my move could only fail (already in effect / statused) -> mistake
 //   bad-replacement               my replacement (after a faint / pivot) was weak to the obvious hit -> mistake / blunder
 //   low-hp-switch-in              I brought in a low-HP Pokémon and it fell before it moved -> mistake
-//   ko-streak                     one Pokémon got 3+ knockouts in one stay             -> great
+//   ko-streak                     one Pokémon got 3+ knockouts in one stay (2+ if the opponent then forfeited) -> great
+//   risky-switch                  I switched into a move it was weak to that the opponent had already shown -> mistake
 // The three move-choice rules before them compare my choice with my other options using damage estimates
 // (damage.js, Random Battle spreads). They only use what the player could see at the start
 // of the turn, treat the opponent's unknown ability as the worst case, keep a safety margin
@@ -33,7 +34,7 @@
 // does not know (it returns null) means "skip this moment", never a guess.
 
 const { getMove, typeMultiplier, currentTypes } = require('./data');
-const { estimateRange } = require('./damage');
+const { estimateRange, estimateDamage } = require('./damage');
 
 // Every number and list that tunes the rules lives here.
 const CONFIG = {
@@ -44,6 +45,8 @@ const CONFIG = {
     moveIntoImmunity: 'mistake', switchedIntoImmunity: 'great', missedKo: 'mistake', weakMoveChoice: 'mistake', foundTheKo: 'good',
     // low-hp-switch-in cannot tell a deliberate sacrifice from a mistake, so the label is tunable.
     lowHpSwitchIn: 'mistake', moveFailed: 'mistake', goodTera: 'good', greatTera: 'great', koStreak: 'great',
+    // risky-switch is never a blunder: nothing actually hit, so it only judges the risk taken.
+    riskySwitch: 'mistake',
   },
 
   // low-hp-switch-in: a switch-in at or below this share of max HP counts as "low", and a
@@ -54,6 +57,14 @@ const CONFIG = {
 
   // ko-streak: knockouts by one Pokémon in one stay on the field.
   koStreakMin: 3,
+  // If the opponent forfeits while that Pokémon is still in, the game was cut short by the
+  // forfeit, so a shorter streak counts.
+  koStreakMinBeforeForfeit: 2,
+
+  // risky-switch: the revealed move must hit my incoming Pokémon at least this hard, and the
+  // opponent must have been able to attack (not asleep or frozen at the start of the turn).
+  riskySwitchMinMultiplier: 2,
+  riskySwitchSkipStatuses: ['slp', 'frz'],
 
   // good-tera: the hit must have been at least neutral for the old types and at most resisted
   // for the Tera type; "great" when the old types were weak to it.
@@ -656,6 +667,24 @@ function replacementsOf(ctx, ti) {
 
 const aimedAt = (m, side, name) => !!m.target && m.target.side === side && m.target.mon === name;
 
+// Shared by bad-replacement and risky-switch: the bench Pokémon that would have taken a move of
+// `moveType` at 1x or less. With `minHpPct`, options below that HP are not a fair suggestion.
+// Returns { name, multiplier, hpPct } or null.
+function saferOption(ctx, ti, options, moveType, { minHpPct = null } = {}) {
+  const { battle, gen, me } = ctx;
+  let safer = null;
+  for (const o of options) {
+    if (minHpPct !== null && !(typeof o.hpPct === 'number' && o.hpPct >= minHpPct)) continue;
+    const mon = incomingMon(battle, ti, me, o.name) || { species: o.species, terastallized: false, teraType: null, typeOverride: null, transformedInto: null };
+    const types = currentTypes(gen, mon);
+    const mult = types && typeMultiplier(gen, moveType, types);
+    if (mult === null || mult === undefined || mult > 1) continue;
+    // Name the healthiest safe option (a 25% HP Pokémon is a poor thing to recommend), then the safest matchup.
+    if (!safer || o.hpPct > safer.hpPct || (o.hpPct === safer.hpPct && mult < safer.multiplier)) safer = { name: o.name, multiplier: mult, hpPct: o.hpPct };
+  }
+  return safer;
+}
+
 function badReplacement(ctx, ti) {
   const { battle, cfg, gen, me, opp } = ctx;
   const turn = battle.turns[ti];
@@ -709,15 +738,7 @@ function badReplacement(ctx, ti) {
     if (!label) continue;
 
     // Fairness: it is only a mistake if a bench Pokémon would have taken a normal hit or less.
-    let safer = null;
-    for (const o of options) {
-      const mon = incomingMon(battle, ti, me, o.name) || { species: o.species, terastallized: false, teraType: null, typeOverride: null, transformedInto: null };
-      const types = currentTypes(gen, mon);
-      const mult = types && typeMultiplier(gen, move.type, types);
-      if (mult === null || mult === undefined || mult > 1) continue;
-      // Name the healthiest safe option (a 25% HP Pokémon is a poor thing to recommend), then the safest matchup.
-      if (!safer || o.hpPct > safer.hpPct || (o.hpPct === safer.hpPct && mult < safer.multiplier)) safer = { name: o.name, multiplier: mult, hpPct: o.hpPct };
-    }
+    const safer = saferOption(ctx, ti, options, move.type);
     if (!safer) continue;
 
     out.push({
@@ -730,6 +751,99 @@ function badReplacement(ctx, ti) {
           multiplier, damagePct: hit.damagePct, hpBefore: hit.hpBefore, hpAfter: hit.hpAfter, knockedOut: hit.knockedOut,
           hitTurn: hitTurn.turn, saferOption: { name: safer.name, multiplier: safer.multiplier },
           knowable: true, whyKnowable: why,
+        },
+      },
+    });
+  }
+  return out;
+}
+
+// ---------------------------------------------------------------------------
+// Rule 12: risky-switch
+// ---------------------------------------------------------------------------
+
+// switched-into-super-effective only judges a hit that LANDS. This one covers the other case:
+// I switched into a move my Pokémon was weak to, the opponent had already shown that move, and
+// it simply did not come this turn (it used something else, missed, or failed). The risk was
+// the same, so it is still a mistake, but never a blunder because nothing was lost.
+// `switchMoments` are this turn's switched-into-* moments, so one mistake gives one moment.
+function riskySwitch(ctx, ti, switchMoments) {
+  const { battle, cfg, gen, me, opp } = ctx;
+  const turn = battle.turns[ti];
+  const oppStart = turn.start[opp];
+  const out = [];
+  if (!oppStart || !turn.available) return out;
+  // An asleep or frozen opponent probably could not attack, so the switch was not risky.
+  if (cfg.riskySwitchSkipStatuses.includes(oppStart.status)) return out;
+  // If the opponent switched (or was dragged) this turn, the player may have predicted it.
+  if (turn.switches.some((s) => s.side === opp)) return out;
+  const oppTypes = currentTypes(gen, oppStart);
+  if (!oppTypes) return out;
+
+  for (const sw of chosenSwitches(turn, me)) {
+    if (switchMoments.some((f) => f.moment.mon === sw.mon)) continue;
+    const entering = turn.available.switchOptions.find((o) => o.name === sw.mon);
+    const inc = incomingMon(battle, ti, me, sw.mon);
+    const myTypes = inc && currentTypes(gen, inc);
+    if (!entering || !myTypes) continue;
+    // Weakness Policy turns the hit into a boost, so taking it would be deliberate.
+    if (cfg.deliberateReplacementItems.includes(entering.item)) continue;
+
+    // The strongest damaging move the opponent had already used (earliest on a tie). Status
+    // moves, fixed-damage moves (base power 0) and situational ones are never judged. Pivot
+    // moves (U-turn, Volt Switch...) are skipped too: they are usually used to get out of a bad
+    // matchup, not to knock something out, so not fearing one is a reasonable read.
+    let pick = null;
+    for (const name of oppStart.revealedMoves) {
+      const d = getMove(gen, name);
+      if (!d || d.category === 'Status' || !(d.basePower > 0) || d.selfSwitch) continue;
+      if (cfg.situationalTypeMoves.includes(d.name) || cfg.conditionalMoves.includes(d.name)) continue;
+      const multiplier = typeMultiplier(gen, d.type, myTypes);
+      if (multiplier === null || multiplier < cfg.riskySwitchMinMultiplier) continue;
+      const revealedTurn = firstUseTurn(battle, ti, opp, oppStart.name, name);
+      if (revealedTurn === null) continue;
+      if (!pick || multiplier > pick.multiplier) pick = { name: d.name, type: d.type, multiplier, revealedTurn };
+    }
+    if (!pick) continue;
+
+    // What the opponent did instead. A landed hit from that move means the log and the data
+    // disagree, and a landed super-effective hit from any move is switched-into-super-effective's
+    // territory even when it was too small to flag, so both say nothing here.
+    const theirMoves = turn.moves.filter((m) => m.side === opp && !m.source && m.mon === oppStart.name && m.seq > sw.seq);
+    const landed = (m) => !m.missed && !m.failed;
+    if (theirMoves.some((m) => aimedAt(m, me, sw.mon) && landed(m) && (m.effectiveness === 'super' || m.move === pick.name))) continue;
+    const used = theirMoves.find((m) => m.move === pick.name);
+    const first = theirMoves[0];
+    let whatHappened;
+    if (used) whatHappened = `${oppStart.name} used ${pick.name} but it ${used.missed ? 'missed' : 'failed'}, so the hit did not land`;
+    else if (first) whatHappened = `${oppStart.name} used ${first.move} instead${first.failed ? ', which failed' : ''}, so the hit did not come this time`;
+    else whatHappened = `${oppStart.name} did not use a move this turn, so the hit did not come`;
+
+    // Fairness: a healthy bench Pokémon must have taken a normal hit or less.
+    const options = turn.available.switchOptions.filter((o) => o.name !== sw.mon);
+    const safer = saferOption(ctx, ti, options, pick.type, { minHpPct: cfg.healthyOptionPct });
+    if (!safer) continue;
+
+    // Ask the damage calc about my Pokémon's real ability and item (Levitate, Volt Absorb, Air
+    // Balloon...). If it says the move does nothing, the switch was fine. If it cannot answer,
+    // say nothing.
+    const defender = { ...inc, side: me, name: sw.mon, ability: entering.ability, item: entering.item, status: entering.status, hpPct: entering.hpPct };
+    const est = estimateDamage(gen, oppStart, defender, pick.name, { field: turn.field });
+    if (!est || !(est.maxPct > 0)) continue;
+
+    const hpText = safer.hpPct >= 100 ? 'full HP' : `${safer.hpPct}% HP`;
+    const takes = safer.multiplier === 0 ? 'takes no damage from it' : safer.multiplier === 1 ? 'takes normal damage' : 'takes reduced damage';
+    out.push({
+      seq: sw.seq,
+      moment: {
+        turn: turn.turn, rule: 'risky-switch', label: cfg.labels.riskySwitch,
+        mon: sw.mon, title: 'Switched into a move it was weak to', explanation: null,
+        facts: {
+          myMon: sw.mon, myTypes, switchedOut: sw.from, oppMon: oppStart.name, oppTypes, oppMove: pick.name, oppMoveType: pick.type,
+          multiplier: pick.multiplier, revealedTurn: pick.revealedTurn, whatHappened,
+          saferOption: { name: safer.name, multiplier: safer.multiplier, hpPct: safer.hpPct },
+          knowable: true,
+          whyKnowable: `${oppStart.name} had already used ${pick.name} on turn ${pick.revealedTurn}, ${pick.type} is super-effective against ${sw.mon}'s ${myTypes.join('/')} typing, and ${safer.name} was at ${hpText} and ${takes}`,
         },
       },
     });
@@ -823,11 +937,18 @@ function koStreaks(ctx) {
       }
     }
   });
+  // A stay still open at the end never fainted or left. If the opponent forfeited, the game was
+  // cut short while it was still in, so it counts with a lower bar (the forfeit stopped the streak).
+  const r = battle.result;
+  if (cur && r.forfeit && r.winnerSide === me) cur.endedByForfeit = true;
   close();
 
-  return stays.filter((s) => s.kos.length >= cfg.koStreakMin).map((s) => {
+  return stays.filter((s) => s.kos.length >= (s.endedByForfeit ? cfg.koStreakMinBeforeForfeit : cfg.koStreakMin)).map((s) => {
     const last = s.kos[s.kos.length - 1];
     const since = s.fromTurn === 0 ? 'the start of the battle' : `turn ${s.fromTurn}`;
+    const why = s.endedByForfeit
+      ? `${s.mon} stayed on the field from ${since}, knocked out ${s.kos.length} opposing Pokémon, and the opponent forfeited while it was still in`
+      : `${s.mon} stayed on the field from ${since} and knocked out ${s.kos.length} opposing Pokémon with its own moves`;
     return {
       seq: last.seq,
       streak: s,
@@ -836,8 +957,9 @@ function koStreaks(ctx) {
         mon: s.mon, title: 'Knockout streak', explanation: null,
         facts: {
           myMon: s.mon, count: s.kos.length, kos: s.kos.map(({ turn, oppMon, move }) => ({ turn, oppMon, move })),
+          endedByForfeit: !!s.endedByForfeit,
           knowable: true,
-          whyKnowable: `${s.mon} stayed on the field from ${since} and knocked out ${s.kos.length} opposing Pokémon with its own moves`,
+          whyKnowable: why,
         },
       },
     };
@@ -878,7 +1000,8 @@ function buildReview(battle, { room = null, config } = {}) {
   // Turn 0 is the lead-in (the first switch-ins): nothing was decided there.
   for (let ti = 1; ti < battle.turns.length; ti++) {
     if (!battle.turns[ti].start) continue;
-    found.push(...moveIntoImmunity(ctx, ti), ...switchRules(ctx, ti), ...moveChoiceRules(ctx, ti), ...goodTera(ctx, ti), ...badTera(ctx, ti), ...moveFailed(ctx, ti));
+    const switched = switchRules(ctx, ti);
+    found.push(...moveIntoImmunity(ctx, ti), ...switched, ...riskySwitch(ctx, ti, switched), ...moveChoiceRules(ctx, ti), ...goodTera(ctx, ti), ...badTera(ctx, ti), ...moveFailed(ctx, ti));
   }
 
   // The replacement rules run after the main loop because low-hp-switch-in must know which

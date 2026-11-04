@@ -30,7 +30,9 @@ const SAMPLE_KEYS = {
   'move-failed': ['myMon', 'myMove', 'oppMon', 'reason', 'since', 'knowable', 'whyKnowable'],
   'bad-replacement': ['myMon', 'myTypes', 'replacedAfter', 'oppMon', 'oppTypes', 'oppMove', 'oppMoveType', 'multiplier', 'damagePct', 'hpBefore', 'hpAfter', 'knockedOut', 'hitTurn', 'saferOption', 'knowable', 'whyKnowable'],
   'low-hp-switch-in': ['myMon', 'hpWhenEntered', 'faintedTurn', 'koBy', 'healthierOption', 'knowable', 'whyKnowable'],
-  'ko-streak': ['myMon', 'count', 'kos', 'knowable', 'whyKnowable'],
+  'ko-streak': ['myMon', 'count', 'kos', 'endedByForfeit', 'knowable', 'whyKnowable'],
+  // Added by docs/task-risky-switch-forfeit-streak.md.
+  'risky-switch': ['myMon', 'myTypes', 'switchedOut', 'oppMon', 'oppTypes', 'oppMove', 'oppMoveType', 'multiplier', 'revealedTurn', 'whatHappened', 'saferOption', 'knowable', 'whyKnowable'],
 };
 
 function assertShape(review) {
@@ -288,9 +290,10 @@ function describe_switch_rules() {
       '|move|p2a: Moltres|Flamethrower|p1a: Venusaur', '|-supereffective|p1a: Venusaur', '|-damage|p1a: Venusaur|40/100',
     ]);
     assert.deepStrictEqual(oppSwitch.moments, []);
-    // A miss does nothing.
+    // A miss is not a hit, so switched-into-super-effective says nothing. Since docs/task-risky-switch-forfeit-streak.md
+    // the same turn is judged by risky-switch instead (Flamethrower was already revealed, a miss is luck).
     const miss = withFlame(['|switch|p1a: Venusaur|Venusaur, L80|100/100', '|move|p2a: Charizard|Flamethrower|p1a: Venusaur|[miss]', '|-miss|p2a: Charizard|p1a: Venusaur']);
-    assert.deepStrictEqual(miss.moments, []);
+    assert.deepStrictEqual(miss.moments.map((m) => m.rule), ['risky-switch']);
   });
 
   test('switched-into-super-effective: a hit that matches the opponent\'s own type counts as knowable even if unused', () => {
