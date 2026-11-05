@@ -252,12 +252,17 @@ function showOverlayForRoom(room) {
   showReviewFromText(room, text, { silentIfSpectated: true });
 }
 
-// Dev menu: review a saved log without playing a battle.
-async function openReviewForLogFile() {
+// Review a saved log without playing a battle. Shared by the Dev menu (starts in test-data/)
+// and Games > Past games… (starts in the real battle-logs folder): the only difference
+// between the two is where the picker opens, so they pass title/defaultPath instead of
+// duplicating the function. The dialog falls back to a default folder if the path is missing.
+async function openReviewForLogFile({
+  title = 'Open review for a log file',
+  defaultPath = path.join(__dirname, '..', '..', 'test-data'),
+} = {}) {
   const { canceled, filePaths } = await dialog.showOpenDialog(win, {
-    title: 'Open review for a log file',
-    // Dev tool, so start in the saved test logs (the dialog falls back if the folder is missing).
-    defaultPath: path.join(__dirname, '..', '..', 'test-data'),
+    title,
+    defaultPath,
     filters: [{ name: 'Battle logs', extensions: ['log'] }],
     properties: ['openFile'],
   });
@@ -330,6 +335,16 @@ function buildMenu() {
     // need when typing a password into Showdown, so add the standard Edit menu back.
     { role: 'editMenu' },
     {
+      // For normal users and the demo. No accelerator on purpose: it could clash with Showdown's keys.
+      label: 'Games',
+      submenu: [
+        {
+          label: 'Past games…',
+          click: () => openReviewForLogFile({ title: 'Open a past game', defaultPath: getLogDir() }),
+        },
+      ],
+    },
+    {
       label: 'Dev',
       submenu: [
         {
@@ -348,7 +363,8 @@ function buildMenu() {
           accelerator: 'CommandOrControl+R',
           click: reloadShowdown,
         },
-        { label: 'Open review for a log file…', click: openReviewForLogFile },
+        // Wrapped so Electron's (menuItem, window, event) click arguments aren't taken as options.
+        { label: 'Open review for a log file…', click: () => openReviewForLogFile() },
         { type: 'separator' },
         // mode:'detach' because DevTools cannot dock inside a view of a BaseWindow.
         // Opening DevTools on the Showdown view will detach the capture debugger.
