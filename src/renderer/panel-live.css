@@ -1,2 +1,49 @@
-/* Styles for the #live section of the panel. Faysal's file. */
-#live { font-size: 13px; }
+/* Styles for the #live section of the panel. */
+
+/* The panel is short, so the live section is capped and scrolls inside itself; the review
+   below keeps the rest of the height. */
+#live { font-size: 13px; max-height: 45vh; overflow-y: auto; flex: none; }
+
+.live-header { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 6px; }
+.live-title { font-size: 10px; letter-spacing: 0.06em; color: #9a9aa8; }
+.live-turn { font-size: 11px; color: #9a9aa8; }
+
+.live-block { padding: 6px 0; border-top: 1px solid #33333d; }
+.live-mon { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; margin-bottom: 4px; }
+.live-side { font-size: 11px; color: #9a9aa8; width: 62px; }
+.live-name { font-weight: bold; margin-right: 2px; }
+.live-hp { margin-left: auto; font-size: 12px; }
+.live-status { font-size: 10px; font-weight: bold; padding: 1px 5px; border-radius: 4px; background: #5a4a1e; color: #ffe08a; }
+
+.live-row { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; margin: 3px 0; }
+.live-label { font-size: 11px; color: #9a9aa8; width: 62px; flex: none; }
+.live-muted { color: #8a8a98; font-size: 12px; }
+.live-over { margin-top: 6px; font-style: italic; }
+.move-seen { display: inline-flex; align-items: center; gap: 3px; margin-right: 6px; }
+.move-name { font-size: 12px; }
+
+/* Type chips: small rounded labels, coloured per type (classes come from a fixed list in
+   panel-live.js). White text needs the darker backgrounds below to stay readable. */
+.type-chip { display: inline-block; padding: 1px 7px; border-radius: 9px; font-size: 11px; font-weight: bold; color: #fff; background: #68687a; text-shadow: 0 1px 1px rgba(0, 0, 0, 0.45); }
+.chip-x { margin-left: 3px; font-weight: normal; opacity: 0.9; }
+.tera-badge { font-size: 10px; font-weight: bold; padding: 1px 5px; border-radius: 4px; border: 1px solid #8fd3ff; color: #8fd3ff; }
+
+.type-normal   { background: #7d7d68; }
+.type-fire     { background: #d2561e; }
+.type-water    { background: #3f6fdc; }
+.type-electric { background: #b58f0b; }
+.type-grass    { background: #4a9a2e; }
+.type-ice      { background: #3f9fa8; }
+.type-fighting { background: #b02a24; }
+.type-poison   { background: #8a328a; }
+.type-ground   { background: #a38838; }
+.type-flying   { background: #7a68c8; }
+.type-psychic  { background: #d8386a; }
+.type-bug      { background: #7f9210; }
+.type-rock     { background: #8d7a28; }
+.type-ghost    { background: #614a82; }
+.type-dragon   { background: #5a28d8; }
+.type-dark     { background: #5a463a; }
+.type-steel    { background: #7c7c98; }
+.type-fairy    { background: #c0607a; }
+.type-unknown  { background: #68687a; }
