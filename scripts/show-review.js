@@ -26,6 +26,11 @@ for (const m of review.moments) {
   console.log(`\nTurn ${m.turn}  [${m.label.toUpperCase()}]  ${m.rule}  (${m.mon})`);
   console.log(`   ${m.title}`);
   console.log(`   ${m.facts.whyKnowable}`);
+  const o = m.options;
+  if (o) {
+    if (o.moves.length) console.log(`   Your moves (${o.active}): ${o.moves.map((x) => x.name + (x.used ? ' [used]' : '') + (x.disabled || x.pp === 0 ? ' [disabled]' : '')).join(', ')}${o.canTerastallize ? `   Tera: ${o.canTerastallize}` : ''}`);
+    console.log(`   ${o.kind === 'replacement' ? 'Could send in' : 'Bench'}: ${o.bench.map((b) => `${b.name} ${Math.round(b.hpPct)}%${b.status ? ' ' + b.status : ''}`).join(' · ')}`);
+  }
 }
 
 if (process.argv.includes('--options')) {

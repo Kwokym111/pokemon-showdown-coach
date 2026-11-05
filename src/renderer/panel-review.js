@@ -39,6 +39,54 @@ function detailText(moment) {
   return null;
 }
 
+// The 18 types, lower case. A type from the data is only ever used as a CSS class if it is in
+// this list, so nothing from the server can pick an arbitrary class name.
+const TYPES = ['normal', 'fire', 'water', 'electric', 'grass', 'ice', 'fighting', 'poison', 'ground',
+  'flying', 'psychic', 'bug', 'rock', 'ghost', 'dragon', 'dark', 'steel', 'fairy'];
+
+function typeClass(type) {
+  const t = typeof type === 'string' ? type.toLowerCase() : '';
+  return `type-${TYPES.includes(t) ? t : 'unknown'}`;
+}
+
+// "Zekrom 100% · Dodrio 62% · Gardevoir 30% PAR". HP is rounded: own HP% can be 24.6.
+function benchText(bench) {
+  return bench.map((b) => {
+    const hp = typeof b.hpPct === 'number' ? ` ${Math.round(b.hpPct)}%` : '';
+    return `${b.name}${hp}${b.status ? ` ${String(b.status).toUpperCase()}` : ''}`;
+  }).join(' · ');
+}
+
+function moveChip(m) {
+  const dimmed = m.disabled || m.pp === 0;
+  const chip = el('span', m.name, `opt-chip ${typeClass(m.type)}${m.used ? ' used' : ''}${dimmed ? ' dim' : ''}`);
+  // The mark is text as well as an outline, so it does not rely on colour.
+  if (m.used) chip.append(el('span', ' ✓ used', 'opt-used'));
+  return chip;
+}
+
+// What I could have chosen on that decision (moment.options). Display only; null/missing -> nothing.
+function optionsBlock(options) {
+  if (!options || typeof options !== 'object') return null;
+  const block = el('div', undefined, 'options');
+
+  if (options.kind === 'turn' && Array.isArray(options.moves) && options.moves.length) {
+    const row = el('div', undefined, 'opt-row');
+    row.append(el('span', `Your moves${options.active ? ` (${options.active})` : ''}:`, 'opt-label'));
+    for (const m of options.moves) row.append(moveChip(m));
+    if (options.canTerastallize) row.append(el('span', `Tera: ${options.canTerastallize} available`, 'opt-tera'));
+    block.append(row);
+  }
+
+  if (Array.isArray(options.bench) && options.bench.length) {
+    const row = el('div', undefined, 'opt-row');
+    row.append(el('span', options.kind === 'replacement' ? 'Could send in:' : 'Bench:', 'opt-label'),
+      el('span', benchText(options.bench), 'opt-bench'));
+    block.append(row);
+  }
+  return block.childNodes.length ? block : null;
+}
+
 function momentItem(moment) {
   const item = el('li', undefined, 'moment');
 
@@ -52,6 +100,8 @@ function momentItem(moment) {
 
   const detail = detailText(moment);
   if (detail) item.append(el('p', detail, 'detail'));
+  const opts = optionsBlock(moment.options);
+  if (opts) item.append(opts);
   return item;
 }
 
