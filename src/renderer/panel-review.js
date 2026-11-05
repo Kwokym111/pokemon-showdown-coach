@@ -102,6 +102,26 @@ function momentItem(moment) {
   if (detail) item.append(el('p', detail, 'detail'));
   const opts = optionsBlock(moment.options);
   if (opts) item.append(opts);
+
+  // Click (or Enter/Space when focused) jumps the replay to this turn. Main ignores it when no
+  // replay is open, so this is always safe to call. A <li> with role="button" + tabindex instead
+  // of a <button>, because the row holds paragraphs and lists that a real button can't contain.
+  if (Number.isInteger(moment.turn)) {
+    item.tabIndex = 0;
+    item.setAttribute('role', 'button');
+    item.title = `Show turn ${moment.turn} in the replay`;
+    item.addEventListener('click', () => {
+      // Someone selecting text to copy the explanation is not asking for a jump.
+      if (window.getSelection().toString()) return;
+      window.panelAPI.gotoTurn(moment.turn);
+    });
+    item.addEventListener('keydown', (e) => {
+      // Only when the row itself has focus, so keys inside it keep working normally.
+      if (e.target !== item || (e.key !== 'Enter' && e.key !== ' ')) return;
+      e.preventDefault(); // Space would otherwise scroll the panel
+      window.panelAPI.gotoTurn(moment.turn);
+    });
+  }
   return item;
 }
 

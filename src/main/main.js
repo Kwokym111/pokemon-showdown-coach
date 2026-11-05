@@ -386,6 +386,15 @@ ipcMain.on('replay-get-log', (event) => {
   event.returnValue = ok ? replayLog : '';
 });
 
+// A review moment was clicked in the panel: show that turn in the replay. Only the panel may
+// ask, and the value is checked here because it comes from a page. No replay open = nothing.
+ipcMain.on('goto-turn', (event, turn) => {
+  if (!panelView || event.sender !== panelView.webContents) return;
+  if (!Number.isInteger(turn) || turn < 0 || turn > 10000) return;
+  if (!replayView || replayView.webContents.isDestroyed()) return;
+  replayView.webContents.send('replay-goto-turn', turn);
+});
+
 // The "Back to Showdown" button in the replay page. Same rule: only the replay view may ask.
 ipcMain.on('replay-close', (event) => {
   if (replayView && !replayView.webContents.isDestroyed() && event.sender === replayView.webContents) closeReplay();

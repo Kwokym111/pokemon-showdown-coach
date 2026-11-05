@@ -29,4 +29,7 @@ contextBridge.exposeInMainWorld('panelAPI', {
   onLiveInfo: (callback) => {
     ipcRenderer.on('live-info', (_event, data) => callback(data));
   },
+  // A review moment was clicked: ask main to show that turn in the replay (if one is open).
+  // Main validates the number; the page never talks to the replay directly.
+  gotoTurn: (turn) => ipcRenderer.send('goto-turn', turn),
 });

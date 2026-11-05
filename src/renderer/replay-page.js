@@ -6,6 +6,14 @@
 // the CSP forbids inline handlers.
 document.getElementById('back').addEventListener('click', () => window.replayAPI.close());
 
+// A review moment was clicked in the panel. seekTurn(n) shows the START of turn n, before
+// anyone moves: the decision point, which is what the review talks about. Registered this
+// early, and guarded, so a click before the player is ready (or when it failed) is a no-op.
+window.replayAPI.onGotoTurn((turn) => {
+  if (!Number.isInteger(turn) || typeof Replays === 'undefined' || !Replays.battle) return;
+  Replays.battle.seekTurn(turn);
+});
+
 // textContent (not innerHTML) so a "</script>" or HTML inside the log is just text.
 document.querySelector('script.battle-log-data').textContent = window.replayAPI.getLog() || '';
 
