@@ -4,9 +4,9 @@
   <meta charset="utf-8">
   <title>Review</title>
   <!-- Strict CSP: only our own script, stylesheet and font files (no inline scripts, onclick
-       attributes or style attributes). The one outside source is Showdown's own image server,
-       for the trainer pictures. Extra safety since this card shows names from the server. -->
-  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; font-src 'self'; img-src https://play.pokemonshowdown.com">
+       attributes or style attributes) and nothing loaded from the internet. Extra safety since
+       this card shows names from the server. -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; font-src 'self'">
   <link rel="stylesheet" href="overlay.css">
 </head>
 <body>
@@ -15,20 +15,20 @@
     <p id="message">Analyzing your game…</p>
 
     <div id="summary">
-      <div id="names">
-        <div id="name-me" class="name"></div>
-        <div id="name-opp" class="name name-right"></div>
-      </div>
       <div id="versus">
-        <div id="sprite-me" class="sprite sprite-left empty"><img alt="" referrerpolicy="no-referrer"><span class="initial"></span></div>
+        <div id="name-me" class="name name-left"></div>
         <div id="result-box">
           <div id="score">1 - 0</div>
           <div id="turns"></div>
         </div>
-        <div id="sprite-opp" class="sprite sprite-right empty"><img alt="" referrerpolicy="no-referrer"><span class="initial"></span></div>
+        <div id="name-opp" class="name name-right"></div>
       </div>
 
-      <svg id="graph" viewBox="0 0 346 78" aria-label="Who was ahead during the battle"></svg>
+      <div id="graph-block">
+        <p id="graph-title">Team HP left, turn by turn</p>
+        <svg id="graph" viewBox="0 0 476 136" aria-label="Each team's HP left, turn by turn"></svg>
+        <p id="graph-note">Opponent Pokémon you haven't seen yet count as full HP.</p>
+      </div>
 
       <div id="tiles">
         <div class="tile"><span class="pill great">Great</span><span class="count" id="count-great">0</span></div>
