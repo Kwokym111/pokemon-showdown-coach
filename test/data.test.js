@@ -54,6 +54,15 @@ test('getMove: basics, forgiving names, per-generation category', () => {
   assert.strictEqual(data.getMove(5, 'Moonblast'), null);
 });
 
+test('getAbility / getMove.shortDesc: descriptions, unknown names return null', () => {
+  const a = data.getAbility(9, 'Intimidate');
+  assert.strictEqual(a.name, 'Intimidate');
+  assert.ok(a.shortDesc.length > 0);
+  assert.strictEqual(data.getAbility(9, 'Not An Ability'), null);
+  assert.strictEqual(data.getAbility(9, undefined), null);
+  assert.ok(data.getMove(9, 'Knock Off').shortDesc.length > 0);
+});
+
 test('typeMultiplier: single and dual types', () => {
   assert.strictEqual(data.typeMultiplier(9, 'Fighting', ['Normal']), 2);
   assert.strictEqual(data.typeMultiplier(9, 'Normal', ['Ghost']), 0);

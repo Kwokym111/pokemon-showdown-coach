@@ -3,12 +3,12 @@
 //
 // COMPLIANCE (CLAUDE.md rule 8): this file may only output things that are already visible in
 // the battle, plus static type-chart data. It never recommends, predicts or reveals anything
-// hidden. For the opponent that means: no moveset, item, ability or planned Tera type. The
+// hidden. For the opponent that means: no moveset, item, unrevealed ability or planned Tera type. The
 // opponent object below is therefore built field by field from a fixed whitelist instead of
 // being spread from the state, so a field added to the state later cannot leak by accident.
 
 const { buildBattle } = require('./state');
-const { currentTypes, typeChart, getMove } = require('./data');
+const { currentTypes, typeChart, getMove, getSpecies, getAbility } = require('./data');
 
 // Splits a type chart ({ Fire: 2, Water: 0.5, ... }) into plain, sorted lists.
 function matchups(chart) {
@@ -49,19 +49,45 @@ function describeOpponent(gen, mon) {
   // Only moves the opponent has actually used so far (state records them from |move| lines).
   const revealedMoves = (mon.revealedMoves || []).map((name) => {
     const mv = getMove(gen, name);
-    return { name, type: mv ? mv.type : null, category: mv ? mv.category : null };
+    return {
+      name,
+      type: mv ? mv.type : null,
+      category: mv ? mv.category : null,
+      basePower: mv ? mv.basePower : null,
+      accuracy: mv ? mv.accuracy : null, // a number, or true = never misses
+      shortDesc: mv ? mv.shortDesc : '',
+    };
   });
+
+  // Static reference data about the SPECIES (Showdown shows the same on hover). Using
+  // mon.species even if transformed, to keep it simple.
+  const sp = getSpecies(gen, mon.species);
+  const possibleAbilities = sp
+    ? sp.abilities.map((n) => {
+        const ab = getAbility(gen, n);
+        return { name: n, shortDesc: ab ? ab.shortDesc : '' };
+      })
+    : [];
+  // For the opponent, state only fills mon.ability from the log (|-ability|, [from] ability:
+  // tags), never from a |request|, so a non-null value here has really been shown in battle.
+  const revealedAbility = mon.ability || null;
+
   return {
     name: base.name,
     species: base.species,
     types: base.types,
     terastallized: base.terastallized,
     hpPct: mon.hpPct,
-    status: mon.status || null,
+    // A fainted Pokémon gets its own flag; "fnt" is not a status effect worth a badge.
+    fainted: !!mon.fainted,
+    status: mon.fainted ? null : (mon.status || null),
     weak: base.weak,
     resist: base.resist,
     immune: base.immune,
     revealedMoves,
+    baseStats: sp ? sp.baseStats : null,
+    possibleAbilities,
+    revealedAbility,
   };
 }
 
@@ -71,24 +97,41 @@ function buildLiveInfo(lines) {
   const battle = buildBattle(lines);
   if (!battle.me || battle.gen === null) return null;
 
-  // The latest turn whose start snapshot exists: the state the player is choosing for.
-  // (Turn 0 has start === null; buildBattle also closes the in-progress turn, so it is included.)
+  // The latest turn that has a start snapshot (turn 0, the lead-in, has none). We then read its
+  // END snapshot, which buildBattle fills for the turn still in progress too: the state right
+  // after the last line received. The START snapshot was the old choice, and it hid everything
+  // that happened after `|turn|N` until `|turn|N+1`, which does not arrive while someone is
+  // picking a replacement after a faint or U-turn (and never shows a Pokémon that moved and
+  // then fainted).
   let turn = null;
   for (let i = battle.turns.length - 1; i >= 0; i--) {
     if (battle.turns[i].start) { turn = battle.turns[i]; break; }
   }
-  if (!turn) return null;
+  if (!turn || !turn.end) return null;
 
   const mySide = battle.me;
   const oppSide = mySide === 'p1' ? 'p2' : 'p1';
-  const oppMon = turn.start[oppSide];
-  const myMon = turn.start[mySide];
+  const oppMon = turn.end[oppSide];
+  const myMon = turn.end[mySide];
   const r = battle.result;
+
+  // Every opponent Pokémon that has been on the field, in order of first appearance, each
+  // described exactly like the active one. Nothing about Pokémon that have not appeared.
+  const team = battle.mons.filter((m) => m.side === oppSide);
+  const opponentTeam = team.map((m) => ({
+    ...describeOpponent(battle.gen, m),
+    active: !!oppMon && m.name === oppMon.name,
+  }));
+  // How many of its team we have not seen: just the team size (public, Showdown shows it).
+  const size = battle.teamSize[oppSide];
+  const unseenCount = Number.isInteger(size) ? Math.max(0, size - team.length) : 0;
 
   return {
     turn: turn.turn,
     ended: !!(r.winner || r.tie || r.forfeit),
     opponent: oppMon ? describeOpponent(battle.gen, oppMon) : null,
+    opponentTeam,
+    unseenCount,
     me: myMon ? describeMon(battle.gen, myMon) : null,
   };
 }

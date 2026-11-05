@@ -20,6 +20,8 @@
 //    translates them for the calculator. Hazards are ignored (they do not change move
 //    damage). NOT handled: Gravity, Trick Room, Magic/Wonder Room.
 // Every one of these lines still also becomes the same generic event as before.
+//  - battle.mons: snapshots of every Pokémon that has been switched in so far, both sides, in
+//    order of first appearance (the live panel's roster).
 
 const { parseLine, parseIdent, parseDetails, parseCondition, stripRank } = require('./parser');
 
@@ -95,6 +97,7 @@ function newMon(side, name) {
     terastallized: false, teraType: null, typeOverride: null, transformedInto: null,
     boosts: zeroBoosts(),
     revealedMoves: [], ability: null, item: null, lostItem: null,
+    seen: false, // true once it has been switched in (the live panel's roster lists only these)
     // Only filled for MY Pokémon, from |request| (my own private info):
     moveset: null, plannedTera: null,
   };
@@ -156,6 +159,7 @@ function onSwitch(s, { cmd, args, kw }) {
   mon.species = d.species;
   mon.level = d.level;
   mon.gender = d.gender;
+  mon.seen = true;
   // A Pokémon that already Terastallized comes back with "tera:Type" in its details.
   if (d.tera) { mon.terastallized = true; mon.teraType = d.tera; }
   setCondition(s, mon, args[2]);
@@ -580,6 +584,10 @@ function buildBattle(lines) {
   }
 
   closeTurn(s);
+  // Every Pokémon that has been on the field, per side, in the order it first appeared (Map
+  // keeps insertion order). Snapshots, so callers cannot change the state. For the opponent
+  // this is exactly "the Pokémon revealed so far".
+  s.battle.mons = [...s.mons.values()].filter((m) => m.seen).map(snap);
   return s.battle;
 }
 

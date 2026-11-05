@@ -31,7 +31,8 @@
 //
 //  getMove(gen, name)
 //    -> { name, type, category, basePower, accuracy, priority, selfSwitch, charge, recharge,
-//         selfDestruct, lockedMove, selfDebuff, status } | null
+//         selfDestruct, lockedMove, selfDebuff, status, shortDesc } | null
+//    `shortDesc` is the one-line description text ('' if the data has none).
 //    category is 'Physical' | 'Special' | 'Status'. accuracy is a number (0 to 100) or
 //    `true` for moves that never miss. The last six are booleans for what the move commits
 //    you to: pivots out, takes a turn to charge, needs a recharge turn, makes the user
@@ -41,6 +42,10 @@
 //    or power depends on the situation (Tera Blast, Weather Ball, Hidden Power, Judgment,
 //    Low Kick...) are not resolved here. For what a move really did in a battle, use the
 //    `effectiveness` and `damagePct` fields that buildBattle recorded from the log.
+//
+//  getAbility(gen, name)
+//    -> { name, shortDesc } | null
+//    An ability's display name and one-line description. null if unknown in that generation.
 //
 //  typeMultiplier(gen, attackType, defenderTypes)
 //    -> number | null
@@ -123,7 +128,16 @@ function getMove(gen, name) {
     selfDebuff: !!(self.boosts && Object.values(self.boosts).some((v) => v < 0)), // Close Combat, Overheat
     // The major status the move inflicts ('par', 'brn', 'psn', 'tox', 'slp', 'frz'), else null.
     status: mv.status || null,
+    // One-line description from the bundled data (what Showdown shows on hover). '' if none.
+    shortDesc: mv.shortDesc || '',
   };
+}
+
+function getAbility(gen, name) {
+  const g = genData(gen);
+  const ab = isName(name) ? g.abilities.get(name) : undefined;
+  if (!ab) return null;
+  return { name: ab.name, shortDesc: ab.shortDesc || '' };
 }
 
 function typeMultiplier(gen, attackType, defenderTypes) {
@@ -159,4 +173,4 @@ function currentTypes(gen, mon) {
   return sp ? [...sp.types] : null;
 }
 
-module.exports = { getSpecies, getMove, typeMultiplier, typeChart, currentTypes };
+module.exports = { getSpecies, getMove, getAbility, typeMultiplier, typeChart, currentTypes };

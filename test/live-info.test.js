@@ -6,7 +6,7 @@ const fs = require('fs');
 const path = require('path');
 const { buildLiveInfo } = require('../src/core/live-info');
 const { buildBattle } = require('../src/core/state');
-const { currentTypes, typeChart } = require('../src/core/data');
+const { currentTypes, typeChart, getSpecies } = require('../src/core/data');
 
 const DIR = path.join(__dirname, '..', 'test-data');
 const readLines = (file) => fs.readFileSync(path.join(DIR, file), 'utf8').split('\n');
@@ -96,7 +96,8 @@ for (const [file, teraTurn] of [[TERA_LOG_LATE, 22], [TERA_LOG_EARLY, 2]]) {
 }
 
 test('compliance: the opponent object only has whitelisted keys and no unrevealed moves', () => {
-  const ALLOWED = ['name', 'species', 'types', 'terastallized', 'hpPct', 'status', 'weak', 'resist', 'immune', 'revealedMoves'];
+  const ALLOWED = ['name', 'species', 'types', 'terastallized', 'hpPct', 'fainted', 'status', 'weak', 'resist', 'immune', 'revealedMoves',
+    'baseStats', 'possibleAbilities', 'revealedAbility'];
   for (const file of fs.readdirSync(DIR).filter((f) => f.startsWith('battle-gen9') && f.endsWith('.log'))) {
     const lines = readLines(file);
     const full = buildBattle(lines);
@@ -130,7 +131,51 @@ test('revealedMoves only lists moves already used, with type and category', () =
   const lines = readLines(LONG_LOG);
   const info = buildLiveInfo(upToTurn(lines, 23));
   assert.deepStrictEqual(info.opponent.revealedMoves.map((m) => m.name), ['Stun Spore', 'Protect', 'Knock Off']);
-  assert.deepStrictEqual(info.opponent.revealedMoves[2], { name: 'Knock Off', type: 'Dark', category: 'Physical' });
+  const ko = info.opponent.revealedMoves[2];
+  assert.deepStrictEqual(
+    [ko.name, ko.type, ko.category, ko.basePower, ko.accuracy],
+    ['Knock Off', 'Dark', 'Physical', 65, 100],
+  );
+  assert.ok(ko.shortDesc.length > 0);
+  // The Status move has a description too; its power is 0 (the panel shows "-").
+  assert.strictEqual(info.opponent.revealedMoves[1].basePower, 0);
+});
+
+test('revealedAbility is null until the log shows the opponent\'s ability', () => {
+  const lines = readLines(LONG_LOG);
+  // Turn 1: Cinderace is out but has not shown its ability yet (Libero shows later).
+  const t1 = buildLiveInfo(upToTurn(lines, 1)).opponent;
+  assert.strictEqual(t1.species, 'Cinderace');
+  assert.strictEqual(t1.revealedAbility, null);
+  // Turn 15: Rhyperior, nothing shown. The |-ability| line for Wo-Chien comes right before |turn|16.
+  assert.strictEqual(buildLiveInfo(upToTurn(lines, 15)).opponent.revealedAbility, null);
+  const t16 = buildLiveInfo(upToTurn(lines, 16)).opponent;
+  assert.strictEqual(t16.species, 'Wo-Chien');
+  assert.strictEqual(t16.revealedAbility, 'Tablets of Ruin');
+  // The Pokémon's own ability is in the possible list (the panel matches the two with toId).
+  assert.ok(t16.possibleAbilities.some((a) => a.name === 'Tablets of Ruin'));
+});
+
+test('a revealed ability outside the species list is still reported (Trace, Skill Swap...)', () => {
+  // Synthetic: add a reveal line for an ability Cinderace cannot have.
+  const lines = readLines(LONG_LOG);
+  const cut = upToTurn(lines, 1);
+  // Before |turn|1, so it is part of the state at the start of turn 1.
+  const at = cut.indexOf('|turn|1');
+  const withReveal = [...cut.slice(0, at), '|-ability|p2a: Cinderace|Trace', ...cut.slice(at)];
+  const opp = buildLiveInfo(withReveal).opponent;
+  assert.strictEqual(opp.revealedAbility, 'Trace');
+  assert.ok(!opp.possibleAbilities.some((a) => a.name === 'Trace'));
+});
+
+test('baseStats and possibleAbilities are the species reference data', () => {
+  const lines = readLines(LONG_LOG);
+  const info = buildLiveInfo(upToTurn(lines, 10));
+  const { battle, mon } = oppAt(lines, 10);
+  const sp = getSpecies(battle.gen, mon.species);
+  assert.deepStrictEqual(info.opponent.baseStats, sp.baseStats);
+  assert.deepStrictEqual(info.opponent.possibleAbilities.map((a) => a.name), sp.abilities);
+  assert.ok(info.opponent.possibleAbilities.every((a) => typeof a.shortDesc === 'string'));
 });
 
 test('returns null when there is nothing to show', () => {
@@ -161,4 +206,101 @@ test('never throws on a log cut at every 50th line', () => {
     // Only plain data may cross IPC.
     if (info) assert.deepStrictEqual(JSON.parse(JSON.stringify(info)), info);
   }
+});
+
+// ---------------------------------------------------------------------------
+// Live state (not the turn-start snapshot) and the opponent roster
+// ---------------------------------------------------------------------------
+
+const gen9Logs = () => fs.readdirSync(DIR).filter((f) => f.startsWith('battle-gen9') && f.endsWith('.log'));
+const oppSideOf = (lines) => (buildBattle(lines).me === 'p1' ? 'p2' : 'p1');
+
+test('a move shows up as soon as its line arrives, not only at the next |turn|', () => {
+  const lines = readLines(LONG_LOG);
+  const opp = oppSideOf(lines);
+  const firstTurn2 = lines.indexOf('|turn|2');
+  // The first opponent move after turn 2 starts (a direct |move|, not a [from] call).
+  const idx = lines.findIndex((l, i) => i > firstTurn2 && l.startsWith(`|move|${opp}a: `) && !l.includes('[from]'));
+  assert.ok(idx > 0);
+  const move = lines[idx].split('|')[3];
+
+  const withMove = buildLiveInfo(lines.slice(0, idx + 1)).opponent.revealedMoves.map((m) => m.name);
+  const before = buildLiveInfo(lines.slice(0, idx)).opponent.revealedMoves.map((m) => m.name);
+  assert.ok(withMove.includes(move), `${move} should show right after its line`);
+  // (It may have been used earlier in the battle; only check the new line made the difference.)
+  assert.strictEqual(withMove.length, before.includes(move) ? before.length : before.length + 1);
+});
+
+test('a fainted opponent is flagged, and the moves it used are still listed', () => {
+  let checked = 0;
+  for (const file of gen9Logs()) {
+    const lines = readLines(file);
+    const opp = oppSideOf(lines);
+    const idx = lines.findIndex((l) => l.startsWith(`|faint|${opp}a: `));
+    if (idx === -1) continue;
+    const info = buildLiveInfo(lines.slice(0, idx + 1));
+    if (!info) continue;
+    assert.strictEqual(info.opponent.fainted, true, file);
+    assert.strictEqual(info.opponent.status, null, file);
+    assert.strictEqual(info.opponent.hpPct, 0, file);
+    // The turn before it was not flagged.
+    checked++;
+  }
+  assert.ok(checked >= 2, 'expected opponent faints in the test logs');
+});
+
+// Opponent Pokémon names in the order a |switch| or |drag| line first showed them.
+function seenOpponents(cut, oppSide) {
+  const names = [];
+  for (const l of cut) {
+    const m = /^\|(?:switch|drag)\|(p[12])[ab]?: ([^|]+)\|/.exec(l);
+    if (m && m[1] === oppSide && !names.includes(m[2])) names.push(m[2]);
+  }
+  return names;
+}
+
+test('roster: only Pokémon that have appeared, in order, one active, same data as `opponent`', () => {
+  const ROSTER_KEYS = ['name', 'species', 'types', 'terastallized', 'hpPct', 'fainted', 'status', 'weak', 'resist', 'immune',
+    'revealedMoves', 'baseStats', 'possibleAbilities', 'revealedAbility', 'active'];
+  for (const file of gen9Logs()) {
+    const lines = readLines(file);
+    const full = buildBattle(lines);
+    if (!full.me) continue;
+    const opp = oppSideOf(lines);
+    for (const n of full.turns.filter((t) => t.start).map((t) => t.turn)) {
+      const cut = upToTurn(lines, n);
+      const info = buildLiveInfo(cut);
+      if (!info) continue;
+      const seen = seenOpponents(cut, opp);
+
+      assert.deepStrictEqual(info.opponentTeam.map((m) => m.name), seen, `${file} turn ${n}: roster order`);
+      assert.ok(info.opponentTeam.every((m) => Object.keys(m).every((k) => ROSTER_KEYS.includes(k))), `${file} turn ${n}: roster keys`);
+      assert.strictEqual(info.opponentTeam.filter((m) => m.active).length, 1, `${file} turn ${n}: one active`);
+
+      const active = info.opponentTeam.find((m) => m.active);
+      const { active: _a, ...rest } = active;
+      assert.deepStrictEqual(rest, info.opponent, `${file} turn ${n}: active entry equals opponent`);
+
+      // Every move listed for a roster Pokémon was really used by it in the lines so far.
+      for (const m of info.opponentTeam) {
+        for (const mv of m.revealedMoves) {
+          const used = cut.some((l) => l.startsWith(`|move|${opp}a: ${m.name}|${mv.name}|`) && !l.includes('[from]'));
+          assert.ok(used, `${file} turn ${n}: ${m.name} / ${mv.name} not used yet`);
+        }
+      }
+      // Unseen = team size minus seen (6 in Random Battles).
+      assert.strictEqual(info.unseenCount, Math.max(0, full.teamSize[opp] - seen.length), `${file} turn ${n}: unseen`);
+    }
+  }
+});
+
+test('roster keeps a Pokémon that switched out, with its revealed moves', () => {
+  const lines = readLines(LONG_LOG);
+  // Turn 23 is Wo-Chien (moves seen: Stun Spore, Protect, Knock Off); by turn 24 it is gone.
+  const info = buildLiveInfo(upToTurn(lines, 24));
+  assert.notStrictEqual(info.opponent.species, 'Wo-Chien');
+  const wo = info.opponentTeam.find((m) => m.species === 'Wo-Chien');
+  assert.ok(wo && !wo.active);
+  assert.deepStrictEqual(wo.revealedMoves.map((m) => m.name), ['Stun Spore', 'Protect', 'Knock Off']);
+  assert.strictEqual(wo.revealedAbility, 'Tablets of Ruin');
 });
