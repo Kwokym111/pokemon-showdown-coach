@@ -418,6 +418,11 @@ function sendToPanelReview(channel, payload) {
 
 // payload: the review object, or { room, error: true } / { room, spectated: true }.
 function showOverlay(payload) {
+  // The panel is about to show a different review, so an open replay would belong to the OLD
+  // game and clicking a moment would jump it to the wrong turn. Leave it. This is the one place
+  // every new review passes through (live battle end, Dev > Open review, errors); updateOverlay
+  // (AI text for the SAME review) does not come here. Past games re-opens its replay right after.
+  closeReplay();
   showCard(payload);
   sendToPanelReview('review-ready', payload);
 }
