@@ -21,6 +21,7 @@ const liveInfo = require('./live-info');
 const { buildBattle } = require('../core/state');
 const { buildReview } = require('../core/review');
 const { applyCachedExplanations } = require('../core/review-cache');
+const { cardExtras } = require('../core/card-extras');
 
 const SHOWDOWN_URL = 'https://play.pokemonshowdown.com';
 const PANEL_WIDTH = 360;
@@ -196,7 +197,10 @@ function showReviewFromText(room, text, { silentIfSpectated }) {
     // The damage calc is synchronous and runs on this process, so measure how long the
     // whole build blocks the app.
     const started = Date.now();
-    const review = buildReview(buildBattle(text.split(/\r?\n/)), { room });
+    const lines = text.split(/\r?\n/);
+    const battle = buildBattle(lines);
+    const review = buildReview(battle, { room });
+    Object.assign(review, cardExtras(battle, lines));
     console.log(`[review] built ${room} in ${Date.now() - started} ms (${review.moments.length} moments)`);
 
     // Only the AI text is cached, never the review itself: the rules may have changed since.
