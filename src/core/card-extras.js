@@ -1,16 +1,18 @@
 // card-extras.js: two extra pieces of data for the end-of-game card. Pure: no electron, fs
 // or network.
 //
-//   avatars     { me, opponent }  the Showdown avatar ids, for the trainer pictures
-//   evalSeries  [{ turn, eval }]  who is ahead after each turn, for the graph
+//   avatars     { me, opponent }  the Showdown avatar ids (the card no longer shows trainer
+//                                 pictures, so nothing reads this now; kept because it is harmless)
+//   evalSeries  [{ turn, me, opp, eval }]  each team's HP after each turn, for the graph
 //
 // Neither is part of the review rules: they only exist to draw the card. main.js adds them
 // to the review object right after buildReview (see cardExtras below).
 //
-// eval is from MY point of view: (my team's HP% - the opponent's team HP%) / team size, so it
-// runs from -100 (I am losing everything) to +100. One whole Pokemon is worth about 16.7.
-// Pokemon that have not been seen yet count as full HP. It only looks at HP, so it says who
-// is ahead, not who played better.
+// me and opp are each team's total HP as 0..100 (the sum of its Pokemon's HP% divided by team
+// size), so 100 = everyone at full HP and one fainted Pokemon of six costs about 16.7. The card
+// draws them as two lines. Pokemon that have not been seen yet count as full HP.
+// eval = me - opp (-100..+100). The card no longer draws it, but it is cheap to keep.
+// All of it only looks at HP, so it says who has more HP left, not who played better.
 
 const round1 = (n) => Math.round(n * 10) / 10;
 
@@ -65,6 +67,8 @@ function buildEvalSeries(lines, me) {
     return sum + Math.max(0, teamSize[side] - known.length) * 100;
   };
   const evalNow = () => round1((total(me) - total(opp)) / teamSize[me]);
+  // Each side divided by its OWN team size, so a 6v3 game still starts at 100 vs 100.
+  const pct = (side) => round1(total(side) / teamSize[side]);
 
   const set = (ident, condition) => {
     const w = who(ident);
@@ -78,7 +82,7 @@ function buildEvalSeries(lines, me) {
   const series = [];
   let turn = 0;
   const push = (t) => {
-    const point = { turn: t, eval: evalNow() };
+    const point = { turn: t, me: pct(me), opp: pct(opp), eval: evalNow() };
     if (series.length && series[series.length - 1].turn === t) series[series.length - 1] = point;
     else series.push(point);
   };

@@ -27,25 +27,45 @@ const LOG = [
 ];
 
 test('evalSeries: one point per turn, from my point of view', () => {
-  // turn 0: 200 vs 200 -> 0.  After turn 1: X is at 50, so (200 - 150) / 2 = 25.
-  // After turn 2: A is at 20 and X has fainted, the hidden Y counts as full: (120 - 100) / 2 = 10.
+  // Team size is 2 per side, so each team is "total HP% / 2".
+  // turn 0: both full -> me 100, opp 100.
+  // After turn 1: X is at 50 and the hidden Y counts as full -> opp (50 + 100) / 2 = 75; me still 100. eval 25.
+  // After turn 2: A is at 20 (B full) -> me (20 + 100) / 2 = 60; X fainted, Y full -> opp 50. eval 10.
   assert.deepStrictEqual(buildEvalSeries(LOG, 'p2'), [
-    { turn: 0, eval: 0 }, { turn: 1, eval: 25 }, { turn: 2, eval: 10 },
+    { turn: 0, me: 100, opp: 100, eval: 0 },
+    { turn: 1, me: 100, opp: 75, eval: 25 },
+    { turn: 2, me: 60, opp: 50, eval: 10 },
   ]);
 });
 
 test('evalSeries: the other side sees the mirror image', () => {
-  const mine = buildEvalSeries(LOG, 'p2').map((p) => p.eval);
-  const theirs = buildEvalSeries(LOG, 'p1').map((p) => p.eval);
-  assert.strictEqual(theirs[0], 0);
-  assert.strictEqual(theirs[1], -25); // without a |request| of their own their team is "unseen = full", same as mine for me
+  const mine = buildEvalSeries(LOG, 'p2');
+  const theirs = buildEvalSeries(LOG, 'p1');
+  assert.strictEqual(theirs[0].eval, 0);
+  assert.strictEqual(theirs[1].eval, -25); // without a |request| of their own their team is "unseen = full", same as mine for me
+  // me and opp swap places: what is my line for me is their opponent's line for them.
+  assert.strictEqual(theirs[1].me, mine[1].opp);
+  assert.strictEqual(theirs[1].opp, mine[1].me);
 });
 
 test('evalSeries: healing, percentages and fainting are all read', () => {
   const lines = [...LOG.slice(0, 9), '|-heal|p1a: X|100/100', '|turn|2', '|faint|p2a: A', '|turn|3'];
   const s = buildEvalSeries(lines, 'p2');
   assert.strictEqual(s[1].eval, 0);          // X healed back to full
+  assert.deepStrictEqual([s[1].me, s[1].opp], [100, 100]);
   assert.strictEqual(s[2].eval, -50);        // A fainted: (100 - 200) / 2
+  assert.deepStrictEqual([s[2].me, s[2].opp], [50, 100]);
+});
+
+test('evalSeries: me and opp always stay between 0 and 100, and a wiped-out team reads 0', () => {
+  // Both of my Pokemon faint, so my line ends at 0.
+  const lines = [...LOG.slice(0, 9), '|faint|p2a: A', '|faint|p2b: B', '|turn|2'];
+  const s = buildEvalSeries(lines, 'p2');
+  assert.strictEqual(s[s.length - 1].me, 0);
+  for (const p of [...s, ...buildEvalSeries(LOG, 'p2'), ...buildEvalSeries(LOG, 'p1')]) {
+    assert.ok(p.me >= 0 && p.me <= 100, `me out of range: ${p.me}`);
+    assert.ok(p.opp >= 0 && p.opp <= 100, `opp out of range: ${p.opp}`);
+  }
 });
 
 test('evalSeries: nothing to draw when I am not a player, or the input is junk', () => {

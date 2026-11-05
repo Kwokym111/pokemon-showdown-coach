@@ -54,6 +54,41 @@ test('getMove: basics, forgiving names, per-generation category', () => {
   assert.strictEqual(data.getMove(5, 'Moonblast'), null);
 });
 
+test('getAbility / getMove.shortDesc: descriptions, unknown names return null', () => {
+  const a = data.getAbility(9, 'Intimidate');
+  assert.strictEqual(a.name, 'Intimidate');
+  assert.ok(a.shortDesc.length > 0);
+  assert.strictEqual(data.getAbility(9, 'Not An Ability'), null);
+  assert.strictEqual(data.getAbility(9, undefined), null);
+  assert.ok(data.getMove(9, 'Knock Off').shortDesc.length > 0);
+});
+
+test('getStatusName / getFieldEffect: readable names, descriptions from the move data', () => {
+  assert.strictEqual(data.getStatusName('par'), 'Paralyzed');
+  assert.strictEqual(data.getStatusName('tox'), 'Badly poisoned');
+  assert.strictEqual(data.getStatusName('weird'), 'WEIRD');
+  assert.strictEqual(data.getStatusName(null), null);
+  const rain = data.getFieldEffect(9, 'RainDance');
+  assert.strictEqual(rain.name, 'Rain');
+  assert.ok(rain.shortDesc.length > 0);
+  assert.ok(data.getFieldEffect(9, 'Reflect').shortDesc.length > 0);
+  assert.strictEqual(data.getFieldEffect(9, 'Electric Terrain').name, 'Electric Terrain');
+  // No move starts it: still a name, no description.
+  assert.deepStrictEqual(data.getFieldEffect(9, 'DesolateLand'), { name: 'Harsh sunlight', shortDesc: '' });
+  assert.strictEqual(data.getFieldEffect(9, undefined), null);
+});
+
+test('getVolatile: readable names, move descriptions when there is a move', () => {
+  const ls = data.getVolatile(9, 'Leech Seed');
+  assert.strictEqual(ls.name, 'Leech Seed');
+  assert.ok(ls.shortDesc.length > 0);
+  assert.deepStrictEqual(data.getVolatile(9, 'confusion'), { name: 'Confusion', shortDesc: '' });
+  assert.strictEqual(data.getVolatile(9, 'perish3').name, 'Perish 3');
+  assert.ok(data.getVolatile(9, 'Stealth Rock').shortDesc.length > 0);
+  assert.strictEqual(data.getVolatile(9, ''), null);
+  assert.strictEqual(data.getVolatile(9, undefined), null);
+});
+
 test('typeMultiplier: single and dual types', () => {
   assert.strictEqual(data.typeMultiplier(9, 'Fighting', ['Normal']), 2);
   assert.strictEqual(data.typeMultiplier(9, 'Normal', ['Ghost']), 0);

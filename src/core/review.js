@@ -19,7 +19,9 @@
 //   move-failed                   my move could only fail (already in effect / statused) -> mistake
 //   bad-replacement               my replacement (after a faint / pivot) was weak to the obvious hit -> mistake / blunder
 //   low-hp-switch-in              I brought in a low-HP Pokémon and it fell before it moved -> mistake
-//   ko-streak                     one Pokémon got 3+ knockouts in one stay (2+ if the opponent then forfeited) -> great
+//   ko-streak                     one Pokémon got 3+ knockouts in one stay (2+ if the opponent then forfeited, or if the last one won the game) -> great
+//   setup-paid-off                a setup move that worked, then 2+ knockouts by the same Pokémon in the same stay -> good
+//                                 (if that stay is already a ko-streak, the streak says so instead: setUpFirst)
 //   risky-switch                  I switched into a move it was weak to that the opponent had already shown -> mistake
 // The three move-choice rules before them compare my choice with my other options using damage estimates
 // (damage.js, Random Battle spreads). They only use what the player could see at the start
@@ -47,6 +49,7 @@ const CONFIG = {
     lowHpSwitchIn: 'mistake', moveFailed: 'mistake', goodTera: 'good', greatTera: 'great', koStreak: 'great',
     // risky-switch is never a blunder: nothing actually hit, so it only judges the risk taken.
     riskySwitch: 'mistake',
+    setupPaidOff: 'good',
   },
 
   // low-hp-switch-in: a switch-in at or below this share of max HP counts as "low", and a
@@ -60,6 +63,17 @@ const CONFIG = {
   // If the opponent forfeits while that Pokémon is still in, the game was cut short by the
   // forfeit, so a shorter streak counts.
   koStreakMinBeforeForfeit: 2,
+  // Same idea when I won and the stay's last knockout was the battle's final one: the game
+  // ended, so the streak could not have gone on.
+  koStreakMinAtGameEnd: 2,
+
+  // setup-paid-off: after a setup move that worked, the same stay must get this many knockouts.
+  setupPaidOffMinKos: 2,
+  // Only boosts to these stats count as "setting up" (Calm Mind's +SpD alone would not, but its +SpA does).
+  setupStats: ['atk', 'spa', 'spe'],
+  // Setup moves the dex data cannot describe (Belly Drum has no `boosts` entry). Any boost to a
+  // setupStats stat after them counts. (A move list, not a type chart.)
+  extraSetupMoves: ['Belly Drum'],
 
   // risky-switch: the revealed move must hit my incoming Pokémon at least this hard, and the
   // opponent must have been able to attack (not asleep or frozen at the start of the turn).
@@ -918,24 +932,86 @@ function lowHpSwitchIn(ctx, ti, flagged) {
 // Rule 11: ko-streak
 // ---------------------------------------------------------------------------
 
+// Seq restarts every turn, so "later than" needs the turn as well.
+const isAfter = (a, b) => a.turn > b.turn || (a.turn === b.turn && a.seq > b.seq);
+
+// 'p1a: Blaziken' -> { side: 'p1', mon: 'Blaziken' }. Boost events are stored as raw protocol
+// arguments (no side/mon fields), so the rules read the ident themselves.
+function parseIdent(ident) {
+  const m = /^(p[12])[a-z]?: (.*)$/.exec(ident || '');
+  return m ? { side: m[1], mon: m[2] } : null;
+}
+
+// Did my move at events[i] actually raise one of my stats? Boost lines come right after the
+// move line, so we read only the unbroken run of events that follows it. Stopping at the first
+// other event matters: Speed Boost (an ability, which adds no event of its own) raises Speed at
+// the END of the turn, after other events, and must not be mistaken for a setup move working.
+// A failed or capped setup move prints no boost line at all, so it never counts.
+function setupWorked(ctx, events, i) {
+  const { cfg, gen, me } = ctx;
+  const e = events[i];
+  const move = getMove(gen, e.move);
+  if (!move) return null;
+  let stats;
+  if (cfg.extraSetupMoves.includes(move.name)) {
+    stats = cfg.setupStats;
+  } else {
+    // Data-driven: a Status move aimed at myself that raises a setup stat. A damaging move
+    // (Power-Up Punch, Flame Charge) keeps its boost elsewhere in the data and is not setup.
+    if (move.category !== 'Status' || move.target !== 'self' || !move.boosts) return null;
+    stats = cfg.setupStats.filter((s) => move.boosts[s] > 0);
+  }
+  if (!stats.length) return null;
+  for (let j = i + 1; j < events.length; j++) {
+    const f = events[j];
+    if (f.type === 'damage' && f.self) continue; // Belly Drum pays HP before the boost
+    if (f.type !== 'boost' && f.type !== 'setboost') break;
+    const who = parseIdent(f.args && f.args[0]);
+    if (who && who.side === me && who.mon === e.mon && stats.includes(f.args[1])) return { move: move.name };
+  }
+  return null;
+}
+
+// "a", "a and b", "a, b and c".
+const joinList = (items) => (items.length < 2 ? items.join('') : `${items.slice(0, -1).join(', ')} and ${items[items.length - 1]}`);
+
+// "Swords Dance on turns 18 and 20" / "Nasty Plot on turn 3 and Calm Mind on turn 5".
+function setupText(setups) {
+  const byMove = [];
+  for (const s of setups) {
+    let g = byMove.find((x) => x.move === s.move);
+    if (!g) { g = { move: s.move, turns: [] }; byMove.push(g); }
+    g.turns.push(s.turn);
+  }
+  return joinList(byMove.map((g) => `${g.move} on turn${g.turns.length > 1 ? 's' : ''} ${joinList(g.turns.map(String))}`));
+}
+
 // Walks the whole battle once. A "stay" starts when one of my Pokémon comes onto the field and
 // ends when it is replaced or faints. Only knockouts from its own moves count (`knockedOut`
-// is only set by direct move damage, never by burn, hazards or recoil).
-function koStreaks(ctx) {
-  const { battle, cfg, me } = ctx;
+// is only set by direct move damage, never by burn, hazards or recoil). Both ko-streak and
+// setup-paid-off read these stays, so they always agree on what one Pokémon did in one stay.
+// Each stay: { mon, fromTurn, kos: [{ turn, oppMon, move, seq }], setups: [{ turn, move, seq }],
+// endedByForfeit, endedGame }.
+function myStays(ctx) {
+  const { battle, me, opp } = ctx;
   const stays = [];
   let cur = null;
   const close = () => { if (cur) stays.push(cur); cur = null; };
+  let lastOppFaint = null; // the battle's final opposing faint
 
   battle.turns.forEach((turn) => {
-    for (const e of turn.events) {
-      if (e.side !== me) continue;
-      if (e.type === 'switch' || e.type === 'drag') { close(); cur = { mon: e.mon, fromTurn: turn.turn, kos: [] }; }
+    turn.events.forEach((e, i, events) => {
+      if (e.type === 'faint' && e.side === opp) lastOppFaint = { turn: turn.turn, seq: e.seq, mon: e.mon };
+      if (e.side !== me) return;
+      if (e.type === 'switch' || e.type === 'drag') { close(); cur = { mon: e.mon, fromTurn: turn.turn, kos: [], setups: [] }; }
       else if (e.type === 'faint') { if (cur && cur.mon === e.mon) close(); }
-      else if (e.type === 'move' && cur && e.mon === cur.mon && e.knockedOut && e.target) {
-        cur.kos.push({ turn: turn.turn, oppMon: e.target.mon, move: e.move, seq: e.seq });
+      else if (e.type === 'move' && cur && e.mon === cur.mon) {
+        if (e.knockedOut && e.target) cur.kos.push({ turn: turn.turn, oppMon: e.target.mon, move: e.move, seq: e.seq });
+        // A move called by another move (Sleep Talk) was not the player's choice.
+        const worked = !e.source && setupWorked(ctx, events, i);
+        if (worked) cur.setups.push({ turn: turn.turn, move: worked.move, seq: e.seq });
       }
-    }
+    });
   });
   // A stay still open at the end never fainted or left. If the opponent forfeited, the game was
   // cut short while it was still in, so it counts with a lower bar (the forfeit stopped the streak).
@@ -943,27 +1019,88 @@ function koStreaks(ctx) {
   if (cur && r.forfeit && r.winnerSide === me) cur.endedByForfeit = true;
   close();
 
-  return stays.filter((s) => s.kos.length >= (s.endedByForfeit ? cfg.koStreakMinBeforeForfeit : cfg.koStreakMin)).map((s) => {
-    const last = s.kos[s.kos.length - 1];
+  // I won without a forfeit and the stay's last knockout was the battle's last: the opposing
+  // Pokémon it knocked out was the final one to faint, so the opponent had nothing left.
+  if (r.winnerSide === me && !r.forfeit && lastOppFaint) {
+    for (const s of stays) {
+      const last = s.kos[s.kos.length - 1];
+      s.endedGame = !!last && last.turn === lastOppFaint.turn && last.seq < lastOppFaint.seq && last.oppMon === lastOppFaint.mon;
+    }
+  }
+  return stays;
+}
+
+// Rules 11 and 13: ko-streak, setup-paid-off. Returns entries shaped like the other rules, plus
+// `streak: { mon, kos }` (the knockouts the moment covers) so buildReview can drop the
+// found-the-ko moments that are inside it.
+function stayRules(ctx) {
+  const { cfg } = ctx;
+  const out = [];
+
+  for (const s of myStays(ctx)) {
+    // Set up, then cashed in: the knockouts that came AFTER the first working setup.
+    const first = s.setups[0];
+    const kosAfter = first ? s.kos.filter((k) => isAfter(k, first)) : [];
+    const paidOff = kosAfter.length >= cfg.setupPaidOffMinKos;
+    const lastPaid = kosAfter[kosAfter.length - 1];
+    // Only the setups that came before the last counted knockout are part of the story.
+    const setups = paidOff ? s.setups.filter((u) => isAfter(lastPaid, u)).map(({ turn, move }) => ({ turn, move })) : [];
+
+    const bar = Math.min(
+      s.endedByForfeit ? cfg.koStreakMinBeforeForfeit : Infinity,
+      s.endedGame ? cfg.koStreakMinAtGameEnd : Infinity,
+      cfg.koStreakMin,
+    );
     const since = s.fromTurn === 0 ? 'the start of the battle' : `turn ${s.fromTurn}`;
-    const why = s.endedByForfeit
-      ? `${s.mon} stayed on the field from ${since}, knocked out ${s.kos.length} opposing Pokémon, and the opponent forfeited while it was still in`
-      : `${s.mon} stayed on the field from ${since} and knocked out ${s.kos.length} opposing Pokémon with its own moves`;
-    return {
-      seq: last.seq,
-      streak: s,
-      moment: {
-        turn: last.turn, rule: 'ko-streak', label: cfg.labels.koStreak,
-        mon: s.mon, title: 'Knockout streak', explanation: null,
-        facts: {
-          myMon: s.mon, count: s.kos.length, kos: s.kos.map(({ turn, oppMon, move }) => ({ turn, oppMon, move })),
-          endedByForfeit: !!s.endedByForfeit,
-          knowable: true,
-          whyKnowable: why,
+
+    if (s.kos.length >= bar) {
+      const last = s.kos[s.kos.length - 1];
+      const setupBit = paidOff ? `set up with ${setupText(setups)}, ` : '';
+      let why;
+      if (s.endedByForfeit) {
+        why = `${s.mon} stayed on the field from ${since}, ${setupBit}knocked out ${s.kos.length} opposing Pokémon, and the opponent forfeited while it was still in`;
+      } else {
+        why = `${s.mon} stayed on the field from ${since}${paidOff ? ', ' : ' and '}${setupBit}${paidOff ? 'and ' : ''}knocked out ${s.kos.length} opposing Pokémon with its own moves`;
+        if (s.endedGame) why += ', and its last knockout won the game';
+      }
+      out.push({
+        seq: last.seq,
+        streak: s,
+        moment: {
+          turn: last.turn, rule: 'ko-streak', label: cfg.labels.koStreak,
+          mon: s.mon, title: 'Knockout streak', explanation: null,
+          facts: {
+            myMon: s.mon, count: s.kos.length, kos: s.kos.map(({ turn, oppMon, move }) => ({ turn, oppMon, move })),
+            endedByForfeit: !!s.endedByForfeit,
+            endedGame: !!s.endedGame,
+            // One moment per achievement: a streak that was set up says so here instead of
+            // getting a second setup-paid-off moment.
+            setUpFirst: paidOff,
+            setupMoves: setups,
+            knowable: true,
+            whyKnowable: why,
+          },
         },
-      },
-    };
-  });
+      });
+    } else if (paidOff) {
+      const names = kosAfter.map((k) => k.oppMon);
+      out.push({
+        seq: lastPaid.seq,
+        streak: { mon: s.mon, kos: kosAfter },
+        moment: {
+          turn: lastPaid.turn, rule: 'setup-paid-off', label: cfg.labels.setupPaidOff,
+          mon: s.mon, title: 'Setup paid off', explanation: null,
+          facts: {
+            myMon: s.mon, setupMoves: setups,
+            kos: kosAfter.map(({ turn, oppMon, move }) => ({ turn, oppMon, move })),
+            knowable: true,
+            whyKnowable: `${s.mon} used ${setupText(setups)}, then knocked out ${joinList(names)} with its own moves during the same stay on the field`,
+          },
+        },
+      });
+    }
+  }
+  return out;
 }
 
 // ---------------------------------------------------------------------------
@@ -1017,7 +1154,7 @@ function buildReview(battle, { room = null, config } = {}) {
   }
 
   // A streak replaces the individual found-the-ko moments inside it (they are listed in its facts).
-  const streaks = koStreaks(ctx);
+  const streaks = stayRules(ctx); // ko-streak and setup-paid-off
   const inStreak = (m) => m.rule === 'found-the-ko' && streaks.some((s) => s.streak.mon === m.mon && s.streak.kos.some((k) => k.turn === m.turn));
   const kept = found.filter((f) => !inStreak(f.moment));
   found.length = 0;

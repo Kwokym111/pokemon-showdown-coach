@@ -30,8 +30,10 @@
 //    included; it is empty before Gen 3.
 //
 //  getMove(gen, name)
-//    -> { name, type, category, basePower, accuracy, priority, selfSwitch, charge, recharge,
-//         selfDestruct, lockedMove, selfDebuff, status } | null
+//    -> { name, type, category, basePower, accuracy, priority, target, boosts, selfSwitch, charge,
+//         recharge, selfDestruct, lockedMove, selfDebuff, status, shortDesc } | null
+//    `target` is 'self', 'normal', 'allies'...; `boosts` is { atk: 2 } or null (see the code).
+//    `shortDesc` is the one-line description text ('' if the data has none).
 //    category is 'Physical' | 'Special' | 'Status'. accuracy is a number (0 to 100) or
 //    `true` for moves that never miss. The last six are booleans for what the move commits
 //    you to: pivots out, takes a turn to charge, needs a recharge turn, makes the user
@@ -41,6 +43,25 @@
 //    or power depends on the situation (Tera Blast, Weather Ball, Hidden Power, Judgment,
 //    Low Kick...) are not resolved here. For what a move really did in a battle, use the
 //    `effectiveness` and `damagePct` fields that buildBattle recorded from the log.
+//
+//  getAbility(gen, name)
+//    -> { name, shortDesc } | null
+//    An ability's display name and one-line description. null if unknown in that generation.
+//
+//  getStatusName(status)
+//    -> 'Paralyzed' | 'Burned' | 'Poisoned' | 'Badly poisoned' | 'Asleep' | 'Frozen' | null
+//    A readable name for Showdown's status id ('par', 'tox'...). null for no status.
+//
+//  getFieldEffect(gen, id)
+//    -> { name, shortDesc } | null
+//    A readable name and one-line description for a weather ('RainDance'), terrain
+//    ('Electric Terrain') or screen ('Reflect') id as stored in buildBattle's `field`.
+//
+//  getVolatile(gen, label)
+//    -> { name, shortDesc } | null
+//    A readable name and one-line description for a volatile effect name as stored in
+//    mon.volatiles ('Leech Seed', 'confusion', 'perish3'). Also fine for a side condition
+//    such as 'Stealth Rock' (getFieldEffect does the same job for weather, terrain, screens).
 //
 //  typeMultiplier(gen, attackType, defenderTypes)
 //    -> number | null
@@ -114,6 +135,11 @@ function getMove(gen, name) {
   return {
     name: mv.name, type: mv.type, category: mv.category,
     basePower: mv.basePower, accuracy: mv.accuracy, priority: mv.priority,
+    // Who the move aims at ('self', 'normal', 'allies'...) and the stat stages it changes
+    // ({ atk: 2 }), or null. Only a Status move's own `boosts` are listed: damaging moves keep
+    // theirs under secondary/self effects (Power-Up Punch), which are not setup.
+    target: mv.target,
+    boosts: mv.boosts ? { ...mv.boosts } : null,
     // What using the move costs or commits you to (all from the data, so they follow the gen):
     selfSwitch: !!mv.selfSwitch, // U-turn, Volt Switch, Flip Turn...
     charge: !!flags.charge, // hits a turn later (Solar Beam, Fly, Meteor Beam)
@@ -123,7 +149,59 @@ function getMove(gen, name) {
     selfDebuff: !!(self.boosts && Object.values(self.boosts).some((v) => v < 0)), // Close Combat, Overheat
     // The major status the move inflicts ('par', 'brn', 'psn', 'tox', 'slp', 'frz'), else null.
     status: mv.status || null,
+    // One-line description from the bundled data (what Showdown shows on hover). '' if none.
+    shortDesc: mv.shortDesc || '',
   };
+}
+
+function getAbility(gen, name) {
+  const g = genData(gen);
+  const ab = isName(name) ? g.abilities.get(name) : undefined;
+  if (!ab) return null;
+  return { name: ab.name, shortDesc: ab.shortDesc || '' };
+}
+
+// Display names only (labels, not game facts): Showdown's status ids and weather ids are
+// not readable on their own. Unknown ids fall back to the id itself.
+const STATUS_NAMES = { par: 'Paralyzed', brn: 'Burned', psn: 'Poisoned', tox: 'Badly poisoned', slp: 'Asleep', frz: 'Frozen' };
+const WEATHER_NAMES = {
+  RainDance: 'Rain', SunnyDay: 'Sun', Sandstorm: 'Sandstorm', Snowscape: 'Snow', Hail: 'Hail',
+  DesolateLand: 'Harsh sunlight', PrimordialSea: 'Heavy rain', DeltaStream: 'Strong winds',
+};
+
+function getStatusName(status) {
+  if (!isName(status)) return null;
+  return STATUS_NAMES[status] || status.toUpperCase();
+}
+
+function getFieldEffect(gen, id) {
+  const g = genData(gen);
+  if (!isName(id)) return null;
+  // Weather, terrain and screens are all started by a move (Rain Dance, Electric Terrain,
+  // Reflect), so that move's one-line description is the description. Weather from an
+  // ability (Drizzle) is the same weather. Special weathers have no move: no description.
+  const mv = g.moves.get(id);
+  return { name: WEATHER_NAMES[id] || id, shortDesc: mv ? mv.shortDesc || '' : '' };
+}
+
+// "perish3" -> "Perish 3", "confusion" -> "Confusion", "Leech Seed" stays as it is.
+function prettyEffect(label) {
+  const spaced = label.replace(/(\D)(\d+)$/, '$1 $2');
+  return spaced.charAt(0).toUpperCase() + spaced.slice(1);
+}
+
+function getVolatile(gen, label) {
+  const g = genData(gen);
+  if (!isName(label)) return null;
+  // Most volatile effects are started by a move (Leech Seed, Substitute, Taunt), and that
+  // move's one-line description is the description. Effects without a move of their own
+  // (confusion) get a name and no description.
+  // Careful: a lowercase label ('confusion', 'perish3') is a condition id, not a move, and
+  // looking it up as a move finds the WRONG thing (the move Confusion, "10% chance to
+  // confuse"). Real move names are capitalised in the log ('Leech Seed', 'Substitute').
+  const isConditionId = label === label.toLowerCase();
+  const mv = isConditionId ? null : g.moves.get(label);
+  return { name: prettyEffect(label), shortDesc: mv ? mv.shortDesc || '' : '' };
 }
 
 function typeMultiplier(gen, attackType, defenderTypes) {
@@ -159,4 +237,4 @@ function currentTypes(gen, mon) {
   return sp ? [...sp.types] : null;
 }
 
-module.exports = { getSpecies, getMove, typeMultiplier, typeChart, currentTypes };
+module.exports = { getSpecies, getMove, getAbility, getStatusName, getFieldEffect, getVolatile, typeMultiplier, typeChart, currentTypes };

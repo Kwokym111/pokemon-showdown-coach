@@ -1,54 +1,39 @@
 // overlay.js: the end-of-game card's page script. It only displays what main sends it.
-// Everything is set with textContent / attributes, never innerHTML: names and avatar ids come
-// from the server, and innerHTML would run any HTML hiding in them.
+// Everything is set with textContent / attributes, never innerHTML: player names come from the
+// server, and innerHTML would run any HTML hiding in them.
 //
 // What it reads from the review (see docs/review-format.md):
 //   players.me / players.opponent, result.{won, forfeit, lastTurn}, moments[].label
-// and two optional extras that main.js adds (src/core/card-extras.js):
-//   avatars.{me, opponent}   Showdown avatar ids -> trainer pictures (a letter if missing)
-//   evalSeries[{turn, eval}] who was ahead after each turn -> the graph (a flat line if missing)
+// and one optional extra that main.js adds (src/core/card-extras.js):
+//   evalSeries[{turn, me, opp}] each team's HP% after each turn -> the graph (hidden if missing)
+// (card-extras also sends `avatars`; the card no longer shows trainer pictures, so it ignores it.)
 // Or { room, error: true } / { room, spectated: true } when there is no review to show.
 
 const $ = (id) => document.getElementById(id);
 const card = $('card');
 
 // ---------------------------------------------------------------------------
-// Trainer pictures
+// Graph: each team's HP over the battle, as two lines that both start at 100%
 // ---------------------------------------------------------------------------
-const SPRITES = 'https://play.pokemonshowdown.com/sprites/';
-// Showdown avatar ids are plain words/numbers ("steven", "265"), or "#name" for custom ones.
-// Anything else is ignored, so a strange id can never become a strange URL.
-const AVATAR_ID = /^#?[A-Za-z0-9_-]{1,40}$/;
-
-function avatarUrl(avatar) {
-  if (typeof avatar !== 'string' || !AVATAR_ID.test(avatar)) return null;
-  return avatar[0] === '#' ? `${SPRITES}trainers-custom/${avatar.slice(1)}.png` : `${SPRITES}trainers/${avatar}.png`;
-}
-
-function setSprite(frame, avatar, name) {
-  const img = frame.querySelector('img');
-  frame.querySelector('.initial').textContent = (name || '?').trim().charAt(0).toUpperCase() || '?';
-  const url = avatarUrl(avatar);
-  if (!url) { frame.classList.add('empty'); img.removeAttribute('src'); return; }
-  if (img.getAttribute('src') !== url) {  // the AI text arrives later and re-sends the review: do not reload the picture
-    frame.classList.add('empty');         // a letter until the picture has loaded
-    img.setAttribute('src', url);
-  }
-}
-for (const id of ['sprite-me', 'sprite-opp']) {
-  const frame = $(id);
-  const img = frame.querySelector('img');
-  img.addEventListener('load', () => frame.classList.remove('empty'));
-  img.addEventListener('error', () => frame.classList.add('empty')); // offline or unknown avatar
-}
-
-// ---------------------------------------------------------------------------
-// Graph: light = you were ahead, dark = you were behind
-// ---------------------------------------------------------------------------
+// Top to bottom: a legend strip, the plot (gridlines at 100 / 50 / 0%), a row of turn numbers.
+// The legend and labels are OUTSIDE the plot so they never sit on top of a line. Left to right:
+// a small gutter for the "100%" labels, then the plot.
 const NS = 'http://www.w3.org/2000/svg';
-const G_W = 346, G_H = 78, G_MID = G_H / 2;
+const G_W = 476;                         // the card's content width; must match the viewBox in index.html
+const X0 = 34, X1 = G_W - 8;             // plot left (after the % labels) and right
+const PLOT_H = 90;                       // distance between the 100% line and the 0% line
+const LEGEND_H = 22;
+const Y100 = LEGEND_H + 4;               // 4px of room so the thick line at 100% is not clipped
+const Y0 = Y100 + PLOT_H;
+const G_H = Y0 + 20;                     // 136, room for the turn numbers; must match the viewBox
 // Plain colour attributes (not CSS) so the graph looks the same in any renderer.
-const AHEAD = '#b3b3b2', BEHIND = '#51504e';
+// Cyan and orange read differently even with red-green colour blindness (unlike green and red).
+const ME = '#5ec8e5', OPP = '#ef8427';   // = --great and --mistake in overlay.css
+const LABEL = '#cdd6f4', AXIS = '#a6adc8', GRID = '#4a4745';
+
+// SVG text cannot cut itself off with "…", so long names are shortened here. The full names are
+// in the header of the card.
+const clip = (s, n = 16) => (s.length > n ? `${s.slice(0, n - 1)}…` : s);
 
 function svg(tag, attrs) {
   const node = document.createElementNS(NS, tag);
@@ -56,36 +41,55 @@ function svg(tag, attrs) {
   return node;
 }
 
-// The line crosses zero between two turns; add that point so the light and dark areas meet there.
-function withCrossings(points) {
-  const out = [];
-  points.forEach((p, i) => {
-    out.push(p);
-    const q = points[i + 1];
-    if (q && (p.v < 0) !== (q.v < 0) && p.v !== 0 && q.v !== 0) {
-      out.push({ x: p.x + (q.x - p.x) * (p.v / (p.v - q.v)), v: 0 });
-    }
-  });
-  return out;
+function label(text, x, y, anchor, fill, weight, size = 11) {
+  const t = svg('text', { x, y, 'text-anchor': anchor, fill, 'font-size': size, 'font-weight': weight });
+  t.textContent = text;
+  return t;
 }
 
-function renderGraph(series) {
+function renderGraph(series, oppName) {
   const g = $('graph');
   g.replaceChildren();
-  const pts = (Array.isArray(series) ? series : []).filter((p) => p && Number.isFinite(p.turn) && Number.isFinite(p.eval));
-  g.appendChild(svg('line', { class: 'base', x1: 0, x2: G_W, y1: G_MID, y2: G_MID, stroke: BEHIND, 'stroke-width': 1 }));
+  const pts = (Array.isArray(series) ? series : []).filter(
+    (p) => p && Number.isFinite(p.turn) && Number.isFinite(p.me) && Number.isFinite(p.opp));
+  // Fewer than two points is not a graph; an empty chart under the title would mislead.
+  $('graph-block').hidden = pts.length < 2;
   if (pts.length < 2) return;
 
-  const first = pts[0].turn, span = pts[pts.length - 1].turn - first || 1;
-  const peak = Math.max(12, ...pts.map((p) => Math.abs(p.eval)));   // fill the height, but never blow up a tiny swing
-  const line = withCrossings(pts.map((p) => ({ x: ((p.turn - first) / span) * G_W, v: p.eval })));
-  const area = (keep, cls, fill) => {
-    const y = (v) => (G_MID - (keep(v) / peak) * G_MID).toFixed(1);
-    const d = line.map((p, i) => `${i ? 'L' : 'M'}${p.x.toFixed(1)},${y(p.v)}`).join(' ') + ` L${G_W},${G_MID} L0,${G_MID} Z`;
-    g.appendChild(svg('path', { class: cls, d, fill }));
+  const first = pts[0].turn, last = pts[pts.length - 1].turn, span = last - first || 1;
+  const x = (turn) => X0 + ((turn - first) / span) * (X1 - X0);
+  const y = (pct) => Y0 - (Math.min(100, Math.max(0, pct)) / 100) * PLOT_H;
+
+  // Gridlines first, so the lines go over them.
+  for (const pct of [100, 50, 0]) {
+    g.appendChild(svg('line', { class: 'grid', x1: X0, x2: X1, y1: y(pct), y2: y(pct), stroke: GRID, 'stroke-width': 1 }));
+    g.appendChild(label(`${pct}%`, X0 - 6, y(pct) + 3.5, 'end', AXIS, 400, 10));
+  }
+
+  // The opponent's line goes first and is thicker; yours goes on top and thinner. Where both are
+  // at the same HP (the start, or any stretch with no damage) you still see an orange edge instead
+  // of the opponent's line disappearing under yours.
+  const path = (key, cls, stroke, width) => {
+    const d = pts.map((p, i) => `${i ? 'L' : 'M'}${x(p.turn).toFixed(1)},${y(p[key]).toFixed(1)}`).join(' ');
+    g.appendChild(svg('path', { class: cls, d, fill: 'none', stroke, 'stroke-width': width, 'stroke-linejoin': 'round', 'stroke-linecap': 'round' }));
   };
-  area((v) => Math.max(v, 0), 'up', AHEAD);
-  area((v) => Math.min(v, 0), 'down', BEHIND);
+  path('opp', 'line-opp', OPP, 4);
+  path('me', 'line-me', ME, 2);
+
+  // Legend: a short sample of each line, then whose it is.
+  const ly = 10;
+  g.appendChild(svg('line', { x1: X0, x2: X0 + 16, y1: ly, y2: ly, stroke: ME, 'stroke-width': 3, 'stroke-linecap': 'round' }));
+  g.appendChild(label('You', X0 + 22, ly + 4, 'start', LABEL, 700));
+  const ox = X0 + 86;
+  g.appendChild(svg('line', { x1: ox, x2: ox + 16, y1: ly, y2: ly, stroke: OPP, 'stroke-width': 3, 'stroke-linecap': 'round' }));
+  g.appendChild(label(clip(oppName || 'Opponent'), ox + 22, ly + 4, 'start', LABEL, 700));
+
+  // Turn numbers: first, middle (only if there is room), last. Turn 0 is the lead-in before turn 1.
+  const axisY = G_H - 4;
+  g.appendChild(label(first === 0 ? 'Start' : `Turn ${first}`, X0, axisY, 'start', AXIS, 400));
+  const mid = Math.round(first + span / 2);
+  if (span >= 8) g.appendChild(label(`Turn ${mid}`, x(mid), axisY, 'middle', AXIS, 400));
+  g.appendChild(label(`Turn ${last}`, X1, axisY, 'end', AXIS, 400));
 }
 
 // ---------------------------------------------------------------------------
@@ -122,17 +126,15 @@ function render(data) {
     const opp = (data.players && data.players.opponent) || 'Opponent';
     const turns = Number.isFinite(result.lastTurn) ? result.lastTurn : 0;
     const moments = Array.isArray(data.moments) ? data.moments : [];
-    const avatars = data.avatars || {};
 
     setTitle(kind);
     $('name-me').textContent = me;
     $('name-opp').textContent = opp;
-    setSprite($('sprite-me'), avatars.me, me);
-    setSprite($('sprite-opp'), avatars.opponent, opp);
     $('score').textContent = SCORES[kind];
     $('turns').textContent = `${turns} ${turns === 1 ? 'turn' : 'turns'}${result.forfeit ? ' · forfeit' : ''}`;
 
-    renderGraph(data.evalSeries);
+    // The legend calls you "You" (your own name is already in the header).
+    renderGraph(data.evalSeries, data.players && data.players.opponent);
 
     for (const label of LABELS) {
       const n = moments.filter((m) => m && m.label === label).length;
@@ -163,12 +165,17 @@ if (api) {
   // main.js also sends 'ai-status' for the side panel. This card has no room for it.
 } else {
   // Opened by double-clicking index.html: show example data so the design can be previewed.
-  const wave = Array.from({ length: 34 }, (_, i) => Math.round((-6 + 5 * Math.sin(i / 2.3) - (i % 7 === 3 ? 6 : 0) + (i === 8 ? 24 : 0) + (i > 31 ? 30 : 0)) * 10) / 10);
+  // Both teams start at 100%. I fall behind in the middle, then win it back.
+  const clamp = (v) => Math.round(Math.max(0, Math.min(100, v)) * 10) / 10;
+  const demo = Array.from({ length: 34 }, (_, i) => ({
+    turn: i,
+    me: clamp(100 - i * 1.1 - (i > 10 ? 14 : 0) - (i > 22 ? 20 : 0)),
+    opp: clamp(100 - i * 1.6 - (i > 14 ? 18 : 0) - (i > 28 ? 30 : 0)),
+  }));
   render({
     players: { me: 'bikmet', opponent: 'anonOpponent3' },
     result: { won: true, forfeit: false, lastTurn: 33 },
-    avatars: { me: '265', opponent: 'lucas' },
-    evalSeries: wave.map((e, i) => ({ turn: i, eval: e })),
+    evalSeries: demo,
     moments: [{ label: 'great' }, { label: 'good' }, { label: 'mistake' }, { label: 'blunder' }],
   });
 }

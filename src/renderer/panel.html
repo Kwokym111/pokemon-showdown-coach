@@ -19,6 +19,10 @@
     .stat { font-size: 13px; margin: 2px 0; }
     /* min-height:0 lets this flex child shrink below its content so it scrolls instead of overflowing. */
     #review { flex: 1; min-height: 0; overflow-y: auto; }
+    /* Battle mode: panel-live.js sets body.in-battle while a battle is running. The live card
+       replaces the review; afterwards the review comes back. */
+    body.in-battle #review { display: none; }
+    body:not(.in-battle) #live { display: none; }
     #debug summary { cursor: pointer; font-size: 14px; font-weight: bold; }
     /* Fixed height: inside a <details> there is no "remaining space" for flex:1 to fill. */
     #log { height: 220px; margin-top: 8px; overflow-y: auto; background: #111; padding: 6px; font: 11px/1.4 Consolas, monospace; white-space: pre-wrap; word-break: break-all; }

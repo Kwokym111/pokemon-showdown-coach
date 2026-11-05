@@ -17,9 +17,14 @@
 //  - battle.turns[n].field / .fieldEnd: { weather, terrain, screens: { p1: [], p2: [] } } at
 //    the start / end of the turn. `field` is what the player could see when choosing.
 //    Values are Showdown's own ids ('SunnyDay', 'Electric Terrain', 'Reflect'); damage.js
-//    translates them for the calculator. Hazards are ignored (they do not change move
-//    damage). NOT handled: Gravity, Trick Room, Magic/Wonder Room.
+//    translates them for the calculator. The snapshot also has `sideEffects` per side
+//    ([{ name: 'Stealth Rock', layers: 1 }]: hazards, Tailwind...), which damage.js ignores
+//    because they do not change move damage. NOT handled: Gravity, Trick Room, Magic/Wonder Room.
 // Every one of these lines still also becomes the same generic event as before.
+//  - mon.volatiles: names of temporary effects on one Pokémon ('Leech Seed', 'Substitute'),
+//    from |-start| and |-end|. They end when the Pokémon leaves the field or faints.
+//  - battle.mons: snapshots of every Pokémon that has been switched in so far, both sides, in
+//    order of first appearance (the live panel's roster).
 
 const { parseLine, parseIdent, parseDetails, parseCondition, stripRank } = require('./parser');
 
@@ -46,7 +51,7 @@ function freshState() {
     },
     mons: new Map(), // "p1|Name" -> mon
     active: { p1: null, p2: null },
-    field: { weather: null, terrain: null, screens: { p1: [], p2: [] } },
+    field: { weather: null, terrain: null, screens: { p1: [], p2: [] }, sideEffects: { p1: [], p2: [] } },
     turn: null,
     lastMove: null, // the move that following effect lines (-damage, -supereffective...) belong to
   };
@@ -85,7 +90,12 @@ const SCREENS = ['Reflect', 'Light Screen', 'Aurora Veil'];
 // A copy, so later events cannot change a snapshot that was already stored in a turn.
 function snapField(s) {
   const f = s.field;
-  return { weather: f.weather, terrain: f.terrain, screens: { p1: [...f.screens.p1], p2: [...f.screens.p2] } };
+  const effects = (side) => f.sideEffects[side].map((e) => ({ ...e })); // hazards and the like
+  return {
+    weather: f.weather, terrain: f.terrain,
+    screens: { p1: [...f.screens.p1], p2: [...f.screens.p2] },
+    sideEffects: { p1: effects('p1'), p2: effects('p2') },
+  };
 }
 
 function newMon(side, name) {
@@ -95,6 +105,8 @@ function newMon(side, name) {
     terastallized: false, teraType: null, typeOverride: null, transformedInto: null,
     boosts: zeroBoosts(),
     revealedMoves: [], ability: null, item: null, lostItem: null,
+    seen: false, // true once it has been switched in (the live panel's roster lists only these)
+    volatiles: [], // temporary effects shown by |-start| ("Leech Seed", "Substitute"), see onStart
     // Only filled for MY Pokémon, from |request| (my own private info):
     moveset: null, plannedTera: null,
   };
@@ -135,6 +147,7 @@ function snap(mon) {
     revealedMoves: [...mon.revealedMoves],
     typeOverride: mon.typeOverride ? [...mon.typeOverride] : null,
     boosts: { ...mon.boosts },
+    volatiles: [...mon.volatiles],
     moveset: mon.moveset ? [...mon.moveset] : null,
   };
 }
@@ -156,6 +169,7 @@ function onSwitch(s, { cmd, args, kw }) {
   mon.species = d.species;
   mon.level = d.level;
   mon.gender = d.gender;
+  mon.seen = true;
   // A Pokémon that already Terastallized comes back with "tera:Type" in its details.
   if (d.tera) { mon.terastallized = true; mon.teraType = d.tera; }
   setCondition(s, mon, args[2]);
@@ -165,6 +179,7 @@ function onSwitch(s, { cmd, args, kw }) {
     prev.typeOverride = null;
     prev.transformedInto = null;
     prev.boosts = zeroBoosts(); // stat stages end when a Pokémon leaves (Baton Pass not handled)
+    prev.volatiles = []; // so do Leech Seed, Substitute, Taunt... (Baton Pass not handled)
   }
   s.active[mon.side] = mon;
   s.lastMove = null;
@@ -237,6 +252,7 @@ function onFaint(s, { args }) {
   mon.fainted = true;
   mon.hp = 0;
   mon.boosts = zeroBoosts();
+  mon.volatiles = [];
   refreshHp(s, mon);
   const ev = push(s, { type: 'faint', ...who(mon) });
   s.turn.faints.push(ev);
@@ -382,10 +398,44 @@ function onStatus(s, { cmd, args }) {
   if (!mon) return;
   mon.status = cmd === '-status' ? args[1] : null;
 }
+// Volatile effects: temporary conditions on one Pokémon, announced by |-start| and ended by
+// |-end|. Examples seen in real logs:
+//   |-start|p2a: Gothitelle|move: Leech Seed      |-start|p1a: Sceptile|Substitute
+//   |-start|p1a: Sceptile|move: Heal Block        |-start|p2a: X|Disable|Volt Switch|[from] ability: ...
+//   |-end|p1a: Sceptile|move: Heal Block
+// We keep only the effect's name; extra arguments (like WHICH move was disabled) are ignored.
+// Not handled: Baton Pass handing effects over, and effects that are never announced with
+// |-start| (one-turn effects use |-activate| / |-singleturn| and are not tracked at all).
+const NOT_AN_EFFECT = new Set(['typechange', 'typeadd']); // modelled elsewhere or not an effect
+const effectLabel = (raw) => String(raw || '').replace(/^(move|ability|item): /, '');
+// Counters ("perish3" -> "perish2", "Stockpile1" -> "Stockpile2") are the SAME effect.
+const effectKey = (label) => toId(label).replace(/\d+$/, '');
+
+function addVolatile(mon, label) {
+  const key = effectKey(label);
+  mon.volatiles = mon.volatiles.filter((v) => effectKey(v) !== key);
+  mon.volatiles.push(label);
+}
+
 function onStart(s, { args }) {
   // |-start|p1a: X|typechange|Fire (or "Fire/Flying")
   const mon = getMon(s, args[0]);
-  if (mon && args[1] === 'typechange' && args[2]) mon.typeOverride = args[2].split('/');
+  if (!mon) return;
+  if (args[1] === 'typechange' && args[2]) { mon.typeOverride = args[2].split('/'); return; }
+  const label = effectLabel(args[1]);
+  if (label && !NOT_AN_EFFECT.has(label.toLowerCase())) addVolatile(mon, label);
+}
+
+// |-end|p1a: X|move: Heal Block. Still recorded as the generic event it always was (review.js
+// reads those); ending something we never tracked (Protosynthesis...) changes nothing.
+function onEnd(s, parsed) {
+  const mon = parsed.args[0] ? getMon(s, parsed.args[0]) : null;
+  const label = effectLabel(parsed.args[1]);
+  if (mon && label) {
+    const key = effectKey(label);
+    mon.volatiles = mon.volatiles.filter((v) => effectKey(v) !== key);
+  }
+  recordGeneric(s, parsed);
 }
 // |-transform|p2a: Ditto|p1a: Pawmot|[from] ability: Imposter
 // The copier takes on the target's types, so remember who it copied. We still keep the
@@ -465,7 +515,11 @@ function onFieldEffect(s, parsed) {
   recordGeneric(s, parsed);
 }
 
-// |-sidestart|p1: Name|move: Reflect   /   |-sideend|p1: Name|Reflect   (hazards are ignored)
+// |-sidestart|p1: Name|move: Reflect   /   |-sideend|p1: Name|Reflect
+// Screens go in `screens` (damage.js reads those). Every other side condition (hazards like
+// Stealth Rock, Spikes, Toxic Spikes, Sticky Web; Tailwind, Safeguard...) goes in
+// `sideEffects`, which damage.js does not use. Spikes and Toxic Spikes announce each extra
+// layer with another |-sidestart|, so a repeat adds a layer; |-sideend| removes them all.
 function onSideCondition(s, parsed) {
   const side = (parsed.args[0] || '').slice(0, 2);
   const name = (parsed.args[1] || '').replace(/^move: /, '');
@@ -474,6 +528,15 @@ function onSideCondition(s, parsed) {
     const i = list.indexOf(name);
     if (parsed.cmd === '-sidestart' && i === -1) list.push(name);
     if (parsed.cmd === '-sideend' && i !== -1) list.splice(i, 1);
+  } else if (list && name) {
+    const effects = s.field.sideEffects[side];
+    const i = effects.findIndex((e) => e.name === name);
+    if (parsed.cmd === '-sidestart') {
+      if (i === -1) effects.push({ name, layers: 1 });
+      else effects[i].layers++;
+    } else if (i !== -1) {
+      effects.splice(i, 1);
+    }
   }
   recordGeneric(s, parsed);
 }
@@ -499,7 +562,7 @@ const HANDLERS = {
   replace: onDetailsChange, detailschange: onDetailsChange, '-formechange': onFormeChange,
   '-ability': onAbility, '-item': onItem, '-enditem': onEndItem,
   '-status': onStatus, '-curestatus': onStatus,
-  '-start': onStart,
+  '-start': onStart, '-end': onEnd,
   '-boost': onBoost, '-unboost': onBoost, '-setboost': onBoost,
   '-clearboost': onBoostReset, '-clearpositiveboost': onBoostReset, '-clearnegativeboost': onBoostReset,
   '-clearallboost': onBoostReset, '-invertboost': onBoostReset,
@@ -580,6 +643,10 @@ function buildBattle(lines) {
   }
 
   closeTurn(s);
+  // Every Pokémon that has been on the field, per side, in the order it first appeared (Map
+  // keeps insertion order). Snapshots, so callers cannot change the state. For the opponent
+  // this is exactly "the Pokémon revealed so far".
+  s.battle.mons = [...s.mons.values()].filter((m) => m.seen).map(snap);
   return s.battle;
 }
 

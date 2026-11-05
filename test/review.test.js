@@ -30,7 +30,9 @@ const SAMPLE_KEYS = {
   'move-failed': ['myMon', 'myMove', 'oppMon', 'reason', 'since', 'knowable', 'whyKnowable'],
   'bad-replacement': ['myMon', 'myTypes', 'replacedAfter', 'oppMon', 'oppTypes', 'oppMove', 'oppMoveType', 'multiplier', 'damagePct', 'hpBefore', 'hpAfter', 'knockedOut', 'hitTurn', 'saferOption', 'knowable', 'whyKnowable'],
   'low-hp-switch-in': ['myMon', 'hpWhenEntered', 'faintedTurn', 'koBy', 'healthierOption', 'knowable', 'whyKnowable'],
-  'ko-streak': ['myMon', 'count', 'kos', 'endedByForfeit', 'knowable', 'whyKnowable'],
+  'ko-streak': ['myMon', 'count', 'kos', 'endedByForfeit', 'endedGame', 'setUpFirst', 'setupMoves', 'knowable', 'whyKnowable'],
+  // Added by docs/task-good-moment-rules.md.
+  'setup-paid-off': ['myMon', 'setupMoves', 'kos', 'knowable', 'whyKnowable'],
   // Added by docs/task-risky-switch-forfeit-streak.md.
   'risky-switch': ['myMon', 'myTypes', 'switchedOut', 'oppMon', 'oppTypes', 'oppMove', 'oppMoveType', 'multiplier', 'revealedTurn', 'whatHappened', 'saferOption', 'knowable', 'whyKnowable'],
 };
