@@ -48,7 +48,7 @@ function assertShape(review) {
     assert.ok(LABELS.includes(m.label), `bad label ${m.label}`);
     assert.strictEqual(m.explanation, null);
     assert.ok(m.rule in SAMPLE_KEYS, `unknown rule ${m.rule}`);
-    assert.deepStrictEqual(Object.keys(m), ['turn', 'rule', 'label', 'mon', 'title', 'explanation', 'facts']);
+    assert.deepStrictEqual(Object.keys(m), ['turn', 'rule', 'label', 'mon', 'title', 'explanation', 'facts', 'options']);
     assert.deepStrictEqual(Object.keys(m.facts), SAMPLE_KEYS[m.rule], `${m.rule} facts drifted from the sample`);
     assert.strictEqual(m.facts.knowable, true);
     assert.ok(m.turn >= last, 'moments out of turn order');

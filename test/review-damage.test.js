@@ -69,7 +69,7 @@ test('missed-ko: Dragon Claw into a Gholdengo at 50% when Earthquake surely KOs'
   const m = flagged(review);
   assert.strictEqual(m.length, 1);
   assert.deepStrictEqual([m[0].turn, m[0].rule, m[0].label, m[0].mon, m[0].title], [1, 'missed-ko', 'mistake', 'Garchomp', 'Missed a knockout']);
-  assert.deepStrictEqual(Object.keys(m[0]), ['turn', 'rule', 'label', 'mon', 'title', 'explanation', 'facts']);
+  assert.deepStrictEqual(Object.keys(m[0]), ['turn', 'rule', 'label', 'mon', 'title', 'explanation', 'facts', 'options']);
   assert.deepStrictEqual(Object.keys(m[0].facts), MISS_KEYS);
   assert.deepStrictEqual(m[0].facts, {
     myMon: 'Garchomp', myMove: 'Dragon Claw', myMoveMinPct: 15.8, myMoveMaxPct: 18.7,

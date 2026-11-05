@@ -24,3 +24,34 @@
 
 #review .moment-title { margin: 6px 0 0; }
 #review .detail { margin: 4px 0 0; color: #bac2de; line-height: 1.4; }
+
+/* "Your moves" / "Bench" under a moment. The type colours are copied from panel-live.css and
+   prefixed with #review so the two sections cannot affect each other. */
+#review .options { margin-top: 8px; padding-top: 6px; border-top: 1px solid #45475a; font-size: 12px; }
+#review .opt-row { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 6px; margin-top: 4px; }
+#review .opt-label { color: #a6adc8; }
+#review .opt-bench { color: #cdd6f4; }
+#review .opt-tera { color: #a6adc8; font-style: italic; margin-left: 4px; }
+#review .opt-chip { display: inline-block; padding: 1px 7px; border-radius: 9px; font-size: 11px; font-weight: bold; color: #fff; background: #68687a; text-shadow: 0 1px 1px rgba(0, 0, 0, 0.45); }
+/* Used move: an outline plus the "used" text. Disabled or 0 PP: dimmed. */
+#review .opt-chip.used { outline: 2px solid #f9e2af; outline-offset: 1px; }
+#review .opt-chip.dim { opacity: 0.4; }
+#review .type-normal   { background: #7d7d68; }
+#review .type-fire     { background: #d2561e; }
+#review .type-water    { background: #3f6fdc; }
+#review .type-electric { background: #b58f0b; }
+#review .type-grass    { background: #4a9a2e; }
+#review .type-ice      { background: #3f9fa8; }
+#review .type-fighting { background: #b02a24; }
+#review .type-poison   { background: #8a328a; }
+#review .type-ground   { background: #a38838; }
+#review .type-flying   { background: #7a68c8; }
+#review .type-psychic  { background: #d8386a; }
+#review .type-bug      { background: #7f9210; }
+#review .type-rock     { background: #8d7a28; }
+#review .type-ghost    { background: #614a82; }
+#review .type-dragon   { background: #5a28d8; }
+#review .type-dark     { background: #5a463a; }
+#review .type-steel    { background: #7c7c98; }
+#review .type-fairy    { background: #c0607a; }
+#review .type-unknown  { background: #68687a; }

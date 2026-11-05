@@ -32,6 +32,9 @@
 // chose. Both players pick at the start of a turn, so anything that changes during the
 // turn (the opponent switching in, Terastallizing) is not held against the player.
 //
+// After the rules run, each moment also gets `options` (the moves and bench the player had on
+// that decision). It is display-only: see optionsFor() further down.
+//
 // Every Pokémon fact comes from data.js with the battle's generation. Anything data.js
 // does not know (it returns null) means "skip this moment", never a guess.
 
@@ -1104,6 +1107,64 @@ function stayRules(ctx) {
 }
 
 // ---------------------------------------------------------------------------
+// moment.options: what the player could choose on that decision (display only)
+// ---------------------------------------------------------------------------
+
+// The review screen shows these so a replay reader can see the moves and bench they had. They
+// are NOT in `facts`, so the AI prompt (which sends only facts) never sees them, and they are
+// not part of the cache key. No rule reads them either.
+
+const benchOf = (list) => list.map((o) => ({ name: o.name, hpPct: o.hpPct, status: o.status || null }));
+
+// Which request the player answered for this moment:
+//   'replacement' -> turn.forceSwitch (after a faint or a pivot such as U-turn)
+//   'turn'        -> turn.available   (the normal choice at the start of the turn)
+// bad-replacement is always a replacement. low-hp-switch-in can be either, and its facts do
+// not say which: a switch made before any move or faint is a normal choice, anything else is
+// the replacement. (A turn can hold both requests, e.g. T12: my Pokémon fainted, so the
+// moves in `available` were not what the replacement was chosen from.)
+function decisionKind(ctx, turn, moment) {
+  if (moment.rule === 'bad-replacement') return 'replacement';
+  if (moment.rule === 'low-hp-switch-in') {
+    return chosenSwitches(turn, ctx.me).some((s) => s.mon === moment.mon) ? 'turn' : 'replacement';
+  }
+  return 'turn';
+}
+
+function optionsFor(ctx, moment) {
+  try {
+    const { battle, gen, me } = ctx;
+    const turn = battle.turns.find((t) => t.turn === moment.turn);
+    if (!turn) return null;
+
+    if (decisionKind(ctx, turn, moment) === 'replacement') {
+      if (!turn.forceSwitch) return null;
+      return { kind: 'replacement', active: null, moves: [], canTerastallize: null, bench: benchOf(turn.forceSwitch.switchOptions) };
+    }
+
+    if (!turn.available) return null;
+    const mine = turn.start && turn.start[me];
+    // The move I actually chose: the first one of mine not called by another move.
+    const chosen = mine && turn.moves.find((m) => m.side === me && !m.source && m.mon === mine.name);
+    return {
+      kind: 'turn',
+      active: mine ? mine.name : null,
+      moves: turn.available.moves.map((m) => {
+        const data = getMove(gen, m.name);
+        return {
+          name: m.name, type: data ? data.type : null, pp: m.pp, maxpp: m.maxpp, disabled: !!m.disabled,
+          used: !!chosen && toId(chosen.move) === toId(m.name),
+        };
+      }),
+      canTerastallize: turn.available.canTerastallize || null,
+      bench: benchOf(turn.available.switchOptions),
+    };
+  } catch {
+    return null; // display-only extra: never let it break the review
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Entry point
 // ---------------------------------------------------------------------------
 
@@ -1162,6 +1223,8 @@ function buildReview(battle, { room = null, config } = {}) {
   // Turns are already in order; seq orders moments within a turn.
   found.sort((a, b) => a.moment.turn - b.moment.turn || a.seq - b.seq);
   review.moments = found.map((f) => f.moment);
+  // Last step, after every rule has run: the rules above never see `options`.
+  for (const m of review.moments) m.options = optionsFor(ctx, m);
   return review;
 }
 
