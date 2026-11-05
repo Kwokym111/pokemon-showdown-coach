@@ -30,8 +30,9 @@
 //    included; it is empty before Gen 3.
 //
 //  getMove(gen, name)
-//    -> { name, type, category, basePower, accuracy, priority, selfSwitch, charge, recharge,
-//         selfDestruct, lockedMove, selfDebuff, status, shortDesc } | null
+//    -> { name, type, category, basePower, accuracy, priority, target, boosts, selfSwitch, charge,
+//         recharge, selfDestruct, lockedMove, selfDebuff, status, shortDesc } | null
+//    `target` is 'self', 'normal', 'allies'...; `boosts` is { atk: 2 } or null (see the code).
 //    `shortDesc` is the one-line description text ('' if the data has none).
 //    category is 'Physical' | 'Special' | 'Status'. accuracy is a number (0 to 100) or
 //    `true` for moves that never miss. The last six are booleans for what the move commits
@@ -134,6 +135,11 @@ function getMove(gen, name) {
   return {
     name: mv.name, type: mv.type, category: mv.category,
     basePower: mv.basePower, accuracy: mv.accuracy, priority: mv.priority,
+    // Who the move aims at ('self', 'normal', 'allies'...) and the stat stages it changes
+    // ({ atk: 2 }), or null. Only a Status move's own `boosts` are listed: damaging moves keep
+    // theirs under secondary/self effects (Power-Up Punch), which are not setup.
+    target: mv.target,
+    boosts: mv.boosts ? { ...mv.boosts } : null,
     // What using the move costs or commits you to (all from the data, so they follow the gen):
     selfSwitch: !!mv.selfSwitch, // U-turn, Volt Switch, Flip Turn...
     charge: !!flags.charge, // hits a turn later (Solar Beam, Fly, Meteor Beam)
