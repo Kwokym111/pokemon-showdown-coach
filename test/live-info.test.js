@@ -96,8 +96,8 @@ for (const [file, teraTurn] of [[TERA_LOG_LATE, 22], [TERA_LOG_EARLY, 2]]) {
 }
 
 test('compliance: the opponent object only has whitelisted keys and no unrevealed moves', () => {
-  const ALLOWED = ['name', 'species', 'types', 'terastallized', 'hpPct', 'fainted', 'status', 'weak', 'resist', 'immune', 'revealedMoves',
-    'baseStats', 'possibleAbilities', 'revealedAbility'];
+  const ALLOWED = ['name', 'species', 'types', 'terastallized', 'hpPct', 'fainted', 'status', 'statusName', 'boosts', 'volatiles', 'weak', 'resist', 'immune',
+    'revealedMoves', 'baseStats', 'possibleAbilities', 'revealedAbility'];
   for (const file of fs.readdirSync(DIR).filter((f) => f.startsWith('battle-gen9') && f.endsWith('.log'))) {
     const lines = readLines(file);
     const full = buildBattle(lines);
@@ -260,7 +260,7 @@ function seenOpponents(cut, oppSide) {
 }
 
 test('roster: only Pokémon that have appeared, in order, one active, same data as `opponent`', () => {
-  const ROSTER_KEYS = ['name', 'species', 'types', 'terastallized', 'hpPct', 'fainted', 'status', 'weak', 'resist', 'immune',
+  const ROSTER_KEYS = ['name', 'species', 'types', 'terastallized', 'hpPct', 'fainted', 'status', 'statusName', 'boosts', 'volatiles', 'weak', 'resist', 'immune',
     'revealedMoves', 'baseStats', 'possibleAbilities', 'revealedAbility', 'active'];
   for (const file of gen9Logs()) {
     const lines = readLines(file);
@@ -303,4 +303,138 @@ test('roster keeps a Pokémon that switched out, with its revealed moves', () =>
   assert.ok(wo && !wo.active);
   assert.deepStrictEqual(wo.revealedMoves.map((m) => m.name), ['Stun Spore', 'Protect', 'Knock Off']);
   assert.strictEqual(wo.revealedAbility, 'Tablets of Ruin');
+});
+
+// ---------------------------------------------------------------------------
+// Effects: status, stat stages, field
+// ---------------------------------------------------------------------------
+
+test('stat stages: only non-zero ones, in a fixed order, for the opponent (live, mid-turn)', () => {
+  const lines = readLines(LONG_LOG);
+  // Lines 178 to 217 (1-based): Rhyperior (opponent) gets atk +2, spa +2, spe +2 and then atk -1.
+  const cut = lines.slice(0, 217);
+  assert.ok(cut[216].startsWith('|-unboost|p2a: Rhyperior|atk|1'));
+  const opp = buildLiveInfo(cut).opponent;
+  assert.strictEqual(opp.species, 'Rhyperior');
+  assert.deepStrictEqual(opp.boosts, [{ stat: 'atk', stages: 1 }, { stat: 'spa', stages: 2 }, { stat: 'spe', stages: 2 }]);
+  // A Pokémon that was never boosted has an empty list, and the Rhyperior entry in the roster
+  // matches the active one.
+  assert.deepStrictEqual(buildLiveInfo(upToTurn(lines, 1)).opponent.boosts, []);
+});
+
+test('stat stages and statuses end when the Pokémon leaves (roster shows none)', () => {
+  const lines = readLines(LONG_LOG);
+  const info = buildLiveInfo(upToTurn(lines, 20)); // Wo-Chien is out; Rhyperior is benched
+  const rhy = info.opponentTeam.find((m) => m.species === 'Rhyperior');
+  assert.ok(rhy && !rhy.active);
+  assert.deepStrictEqual(rhy.boosts, []);
+});
+
+test('my own status shows with a readable name; the opponent status uses the same shape', () => {
+  const lines = readLines(LONG_LOG);
+  const idx = lines.findIndex((l) => l.startsWith('|-status|p1a: Sceptile|par'));
+  assert.ok(idx > 0);
+  const me = buildLiveInfo(lines.slice(0, idx + 1)).me;
+  assert.strictEqual(me.species, 'Sceptile');
+  assert.strictEqual(me.status, 'par');
+  assert.strictEqual(me.statusName, 'Paralyzed');
+  // And just before the line it had none.
+  const before = buildLiveInfo(lines.slice(0, idx)).me;
+  assert.strictEqual(before.status, null);
+  assert.strictEqual(before.statusName, null);
+});
+
+test('field: weather, terrain and screens per side, described from the data', () => {
+  const lines = readLines(LONG_LOG);
+  const base = buildLiveInfo(upToTurn(lines, 1)).field;
+  assert.deepStrictEqual(base, { weather: null, terrain: null, mySide: [], oppSide: [] });
+
+  // Synthetic lines before |turn|1 (this log: I am p1).
+  const cut = upToTurn(lines, 1);
+  const at = cut.indexOf('|turn|1');
+  const extra = ['|-weather|RainDance', '|-fieldstart|move: Electric Terrain',
+    '|-sidestart|p1: cool213|move: Reflect', '|-sidestart|p2: anonOpponent|move: Light Screen'];
+  const f = buildLiveInfo([...cut.slice(0, at), ...extra, ...cut.slice(at)]).field;
+  assert.strictEqual(f.weather.name, 'Rain');
+  assert.ok(f.weather.shortDesc.length > 0);
+  assert.strictEqual(f.terrain.name, 'Electric Terrain');
+  assert.deepStrictEqual(f.mySide.map((x) => x.name), ['Reflect']);
+  assert.deepStrictEqual(f.oppSide.map((x) => x.name), ['Light Screen']);
+});
+
+test('effects never leak hidden info: me/opponent/field only have the expected keys', () => {
+  const MON = ['name', 'species', 'types', 'terastallized', 'status', 'statusName', 'boosts', 'volatiles', 'weak', 'resist', 'immune'];
+  for (const file of gen9Logs()) {
+    const lines = readLines(file);
+    const full = buildBattle(lines);
+    for (const n of full.turns.filter((t) => t.start).map((t) => t.turn)) {
+      const info = buildLiveInfo(upToTurn(lines, n));
+      if (!info) continue;
+      if (info.me) assert.ok(Object.keys(info.me).every((k) => MON.includes(k)), `${file} turn ${n}: me keys`);
+      assert.deepStrictEqual(Object.keys(info.field).sort(), ['mySide', 'oppSide', 'terrain', 'weather']);
+      for (const b of [...info.opponent.boosts, ...(info.me ? info.me.boosts : [])]) {
+        assert.ok(Number.isInteger(b.stages) && b.stages !== 0 && Math.abs(b.stages) <= 6);
+      }
+    }
+  }
+});
+
+// ---------------------------------------------------------------------------
+// Volatile effects and hazards
+// ---------------------------------------------------------------------------
+
+test('volatiles: shown live for both sides with the move description, gone after the end line', () => {
+  const lines = readLines(LONG_LOG);
+  const at = (prefix) => lines.findIndex((l) => l.startsWith(prefix));
+
+  // Opponent Gothitelle is Leech Seeded.
+  const seeded = buildLiveInfo(lines.slice(0, at('|-start|p2a: Gothitelle|move: Leech Seed') + 1)).opponent;
+  assert.strictEqual(seeded.species, 'Gothitelle');
+  assert.deepStrictEqual(seeded.volatiles.map((v) => v.name), ['Leech Seed']);
+  assert.ok(seeded.volatiles[0].shortDesc.length > 0);
+
+  // My Sceptile has Heal Block, then it ends.
+  const hb = buildLiveInfo(lines.slice(0, at('|-start|p1a: Sceptile|move: Heal Block') + 1)).me;
+  assert.deepStrictEqual(hb.volatiles.map((v) => v.name), ['Heal Block']);
+  const gone = buildLiveInfo(lines.slice(0, at('|-end|p1a: Sceptile|move: Heal Block') + 1)).me;
+  assert.deepStrictEqual(gone.volatiles, []);
+});
+
+test('volatiles: a lowercase condition id (confusion) gets a name but not the Confusion MOVE description', () => {
+  const lines = readLines(LONG_LOG);
+  const cut = upToTurn(lines, 1);
+  const at = cut.indexOf('|turn|1');
+  const opp = oppSideOf(lines);
+  const mon = buildLiveInfo(cut).opponent.name;
+  const withConf = [...cut.slice(0, at), `|-start|${opp}a: ${mon}|confusion`, ...cut.slice(at)];
+  assert.deepStrictEqual(buildLiveInfo(withConf).opponent.volatiles, [{ name: 'Confusion', shortDesc: '' }]);
+});
+
+test('volatiles: benched and fainted Pokémon show none', () => {
+  const lines = readLines(LONG_LOG);
+  // Gothitelle (Leech Seeded at turn 4-ish) is benched by turn 12.
+  const info = buildLiveInfo(upToTurn(lines, 12));
+  const goth = info.opponentTeam.find((m) => m.species === 'Gothitelle');
+  assert.ok(goth && !goth.active);
+  assert.deepStrictEqual(goth.volatiles, []);
+});
+
+test('field: hazards per side with layers, after screens, with descriptions', () => {
+  const lines = readLines(LONG_LOG); // I am p1 in this log
+  const cut = upToTurn(lines, 1);
+  const at = cut.indexOf('|turn|1');
+  const extra = ['|-sidestart|p2: anonOpponent|Spikes', '|-sidestart|p2: anonOpponent|Spikes',
+    '|-sidestart|p2: anonOpponent|move: Reflect', '|-sidestart|p1: cool213|move: Stealth Rock'];
+  const f = buildLiveInfo([...cut.slice(0, at), ...extra, ...cut.slice(at)]).field;
+  assert.deepStrictEqual(f.oppSide.map((x) => [x.name, x.layers]), [['Reflect', 1], ['Spikes', 2]]);
+  assert.deepStrictEqual(f.mySide.map((x) => [x.name, x.layers]), [['Stealth Rock', 1]]);
+  assert.ok(f.mySide[0].shortDesc.length > 0);
+});
+
+test('real log: Stealth Rock and Toxic Spikes show up on my side', () => {
+  const lines = readLines('battle-gen9randombattle-2707347511-gk6nrt15cpatbvcdr3bmvh51vg2fdi3pw.log');
+  const info = buildLiveInfo(lines.slice(0, lines.findIndex((l) => l.startsWith('|-sidestart|p1: cool213|move: Stealth Rock')) + 1));
+  assert.strictEqual(oppSideOf(lines), 'p2'); // so p1 is me
+  assert.deepStrictEqual(info.field.mySide.map((x) => x.name).sort(), ['Stealth Rock', 'Toxic Spikes']);
+  assert.deepStrictEqual(info.field.oppSide, []);
 });

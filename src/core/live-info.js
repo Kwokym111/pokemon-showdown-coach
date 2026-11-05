@@ -8,7 +8,10 @@
 // being spread from the state, so a field added to the state later cannot leak by accident.
 
 const { buildBattle } = require('./state');
-const { currentTypes, typeChart, getMove, getSpecies, getAbility } = require('./data');
+const { currentTypes, typeChart, getMove, getSpecies, getAbility, getStatusName, getFieldEffect, getVolatile } = require('./data');
+
+// The order stat stages are listed in. These are Showdown's own boost keys (as in state.js).
+const BOOST_ORDER = ['atk', 'def', 'spa', 'spd', 'spe', 'accuracy', 'evasion'];
 
 // Splits a type chart ({ Fire: 2, Water: 0.5, ... }) into plain, sorted lists.
 function matchups(chart) {
@@ -35,12 +38,56 @@ function describeMon(gen, mon) {
   // that has not been used yet can never show up here. null (unknown species) -> empty lists.
   const types = currentTypes(gen, mon) || [];
   const { weak, resist, immune } = matchups(types.length ? typeChart(gen, types) : null);
+
+  // Effects on the Pokémon that the log has shown. A fainted Pokémon has none ("fnt" is not
+  // a status worth a badge; the panel has its own Fainted flag for that).
+  const status = mon.fainted ? null : (mon.status || null);
+  // Only stat stages that are not 0, in a fixed order. Stages are public (the log announces
+  // every boost and drop) and the state resets them on switch-out and faint.
+  const boosts = [];
+  if (!mon.fainted) {
+    for (const stat of BOOST_ORDER) {
+      const stages = mon.boosts ? mon.boosts[stat] : 0;
+      if (stages) boosts.push({ stat, stages });
+    }
+  }
+  // Temporary effects the log announced (Leech Seed, Substitute...). Names only, plus the
+  // move's one-line description. Nothing about WHICH move was disabled etc. is kept by state.
+  const volatiles = mon.fainted ? [] : (mon.volatiles || []).map((v) => getVolatile(gen, v)).filter(Boolean);
   return {
     name: mon.name,
     species: mon.species,
     types,
     terastallized: !!mon.terastallized,
+    status,
+    statusName: getStatusName(status),
+    boosts,
+    volatiles,
     weak, resist, immune,
+  };
+}
+
+// A weather, terrain or screen id from the state -> { name, shortDesc } (or just the id).
+function fieldEffect(gen, id) {
+  return getFieldEffect(gen, id) || { name: String(id), shortDesc: '' };
+}
+
+// What covers the field right now, from the end snapshot of the current turn. Screens are per
+// side; the panel talks about "your side" and "their side".
+function describeField(gen, fieldEnd, mySide) {
+  const oppSide = mySide === 'p1' ? 'p2' : 'p1';
+  const f = fieldEnd || { weather: null, terrain: null, screens: { p1: [], p2: [] }, sideEffects: { p1: [], p2: [] } };
+  // Screens first, then hazards and other side conditions. `layers` is 1 except for stacked
+  // hazards (Spikes up to 3, Toxic Spikes up to 2).
+  const list = (side) => [
+    ...((f.screens && f.screens[side]) || []).map((id) => ({ ...fieldEffect(gen, id), layers: 1 })),
+    ...((f.sideEffects && f.sideEffects[side]) || []).map((e) => ({ ...fieldEffect(gen, e.name), layers: e.layers })),
+  ];
+  return {
+    weather: f.weather ? fieldEffect(gen, f.weather) : null,
+    terrain: f.terrain ? fieldEffect(gen, f.terrain) : null,
+    mySide: list(mySide),
+    oppSide: list(oppSide),
   };
 }
 
@@ -78,9 +125,11 @@ function describeOpponent(gen, mon) {
     types: base.types,
     terastallized: base.terastallized,
     hpPct: mon.hpPct,
-    // A fainted Pokémon gets its own flag; "fnt" is not a status effect worth a badge.
     fainted: !!mon.fainted,
-    status: mon.fainted ? null : (mon.status || null),
+    status: base.status,
+    statusName: base.statusName,
+    boosts: base.boosts,
+    volatiles: base.volatiles,
     weak: base.weak,
     resist: base.resist,
     immune: base.immune,
@@ -132,6 +181,7 @@ function buildLiveInfo(lines) {
     opponent: oppMon ? describeOpponent(battle.gen, oppMon) : null,
     opponentTeam,
     unseenCount,
+    field: describeField(battle.gen, turn.fieldEnd, mySide),
     me: myMon ? describeMon(battle.gen, myMon) : null,
   };
 }

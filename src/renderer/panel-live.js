@@ -141,6 +141,45 @@ function fillTypes(box, mon) {
   for (const t of mon.types) box.appendChild(chip(t));
 }
 
+// Labels for stat stages. Display names only; the stat ids come from the data.
+const STAGE_LABELS = {
+  atk: ['Atk', 'Attack'], def: ['Def', 'Defense'], spa: ['SpA', 'Sp. Atk'], spd: ['SpD', 'Sp. Def'],
+  spe: ['Spe', 'Speed'], accuracy: ['Acc', 'Accuracy'], evasion: ['Eva', 'Evasion'],
+};
+
+// A small neutral pill with an optional tooltip. cls comes from a fixed list below.
+function effectChip(text, cls, tipLines) {
+  const node = el('span', 'effect-chip ' + cls, text);
+  if (tipLines) attachTip(node, () => tipLines);
+  return node;
+}
+
+// "Effects: [Paralyzed] [Atk +2] [Spe -1]": the status and stat stages shown in the log.
+// Hidden when there is nothing, so a plain Pokémon takes no space. Colour only shows which
+// way a stage moved (up or down); the wording stays neutral.
+function fillEffects(box, mon) {
+  box.textContent = '';
+  const chips = [];
+  if (mon.statusName) chips.push(effectChip(mon.statusName, 'effect-status'));
+  // Temporary effects like Leech Seed or Substitute; the tooltip is the move's description.
+  for (const v of mon.volatiles || []) {
+    chips.push(effectChip(v.name, 'effect-volatile',
+      v.shortDesc ? [{ cls: 'tip-title', text: v.name }, { cls: 'tip-desc', text: v.shortDesc }] : null));
+  }
+  for (const b of mon.boosts || []) {
+    const names = STAGE_LABELS[b.stat] || [b.stat, b.stat];
+    const sign = b.stages > 0 ? '+' : '';
+    chips.push(effectChip(names[0] + ' ' + sign + b.stages, b.stages > 0 ? 'stage-up' : 'stage-down',
+      [{ text: names[1] + ': ' + sign + b.stages + (Math.abs(b.stages) === 1 ? ' stage' : ' stages') }]));
+  }
+  box.hidden = chips.length === 0;
+  if (chips.length === 0) return;
+  const r = el('div', 'live-row');
+  r.appendChild(el('span', 'live-label', 'Effects'));
+  for (const c of chips) r.appendChild(c);
+  box.appendChild(r);
+}
+
 function moveTipLines(m) {
   const power = m.basePower ? String(m.basePower) : '-';
   const acc = m.accuracy === true ? 'never misses' : (typeof m.accuracy === 'number' ? m.accuracy + '%' : '-');
@@ -181,10 +220,8 @@ function buildOpponent(opp) {
   nameRow.appendChild(el('span', 'opp-name', opp.name || opp.species || '?'));
   if (opp.species && opp.species !== opp.name) nameRow.appendChild(el('span', 'opp-species', opp.species));
   refs.tera = el('span', 'tera-badge', 'Tera');
-  refs.status = el('span', 'live-status');
   refs.fainted = el('span', 'faint-badge', 'Fainted');
   nameRow.appendChild(refs.tera);
-  nameRow.appendChild(refs.status);
   nameRow.appendChild(refs.fainted);
   head.appendChild(nameRow);
 
@@ -200,6 +237,10 @@ function buildOpponent(opp) {
   hpRow.appendChild(refs.hpText);
   head.appendChild(hpRow);
   card.appendChild(head);
+
+  // Status and stat stages (what the log has shown); hidden while there are none.
+  refs.effects = el('div', 'opp-effects');
+  card.appendChild(refs.effects);
 
   refs.matchups = el('div', 'opp-matchups');
   card.appendChild(refs.matchups);
@@ -248,6 +289,7 @@ function buildOpponent(opp) {
   // Fill the variable parts. No move animation on the first build: moves seen earlier in the
   // battle (the Pokémon coming back) just appear.
   refs.typesKey = null;
+  refs.effectsKey = null;
   refs.moveNames = [];
   refs.abilityKey = undefined;
   updateOpponent(refs, opp, false);
@@ -265,8 +307,6 @@ function updateOpponent(refs, opp, animate) {
     refs.hpFill.style.width = '0%';
     refs.hpText.textContent = '';
   }
-  refs.status.hidden = !opp.status;
-  refs.status.textContent = opp.status ? String(opp.status).toUpperCase() : '';
   refs.tera.hidden = !opp.terastallized;
   refs.fainted.hidden = !opp.fainted;
   refs.card.classList.toggle('is-fainted', !!opp.fainted);
@@ -277,6 +317,12 @@ function updateOpponent(refs, opp, animate) {
     refs.typesKey = typesKey;
     fillTypes(refs.types, opp);
     fillMatchups(refs.matchups, opp);
+  }
+
+  const effectsKey = JSON.stringify([opp.status, opp.boosts, opp.volatiles]);
+  if (effectsKey !== refs.effectsKey) {
+    refs.effectsKey = effectsKey;
+    fillEffects(refs.effects, opp);
   }
 
   updateMoves(refs, opp.revealedMoves, animate);
@@ -357,8 +403,32 @@ function fillMe(box, me) {
     box.appendChild(el('div', 'live-muted', 'Types not available for this Pokémon.'));
     return;
   }
+  const fx = el('div', 'me-effects');
+  fillEffects(fx, me);
+  if (!fx.hidden) box.appendChild(fx);
   const r = row('Weak to', weakChips(me));
   if (r) box.appendChild(r);
+}
+
+// ---------------------------------------------------------------------------
+// Field strip: weather, terrain and the screens on each side (from the log)
+// ---------------------------------------------------------------------------
+
+function fieldChip(fx) {
+  // "Spikes x2" for stacked hazards; every other entry has one layer and shows just its name.
+  const text = fx.layers > 1 ? fx.name + ' x' + fx.layers : fx.name;
+  return effectChip(text, 'effect-field', fx.shortDesc ? [{ cls: 'tip-title', text: fx.name }, { cls: 'tip-desc', text: fx.shortDesc }] : null);
+}
+
+function renderField(box, field) {
+  box.textContent = '';
+  const rows = [
+    row('Field', [field.weather, field.terrain].filter(Boolean).map(fieldChip)),
+    row('Your side', field.mySide.map(fieldChip)),
+    row('Their side', field.oppSide.map(fieldChip)),
+  ];
+  for (const r of rows) if (r) box.appendChild(r);
+  box.hidden = box.childElementCount === 0;
 }
 
 // ---------------------------------------------------------------------------
@@ -421,6 +491,8 @@ function ensureShell() {
   header.appendChild(el('span', 'turn-pill'));
   header.appendChild(el('span', 'live-title', 'Revealed info only'));
 
+  const fieldBox = el('div', 'field-strip');
+  fieldBox.hidden = true;
   const rosterBox = el('div', 'roster');
 
   // Shown only while a Pokémon other than the active one is displayed.
@@ -436,12 +508,13 @@ function ensureShell() {
   const oppBox = el('div', 'opp-slot');
   const meBox = el('div', 'live-block me-block');
   liveEl.appendChild(header);
+  liveEl.appendChild(fieldBox);
   liveEl.appendChild(rosterBox);
   liveEl.appendChild(viewBar);
   liveEl.appendChild(oppBox);
   liveEl.appendChild(meBox);
   view = {
-    turnPill: header.firstChild, rosterBox, viewBar, viewText, oppBox, meBox,
+    turnPill: header.firstChild, fieldBox, fieldKey: null, rosterBox, viewBar, viewText, oppBox, meBox,
     opp: null, meKey: null, rosterKey: null,
     selected: null, // name of the roster Pokémon being viewed, null = the active one
     lastActive: null, info: null,
@@ -452,6 +525,13 @@ function update(info) {
   ensureShell();
   view.info = info; // click handlers re-render from this
   view.turnPill.textContent = 'Turn ' + info.turn;
+
+  const fieldKey = JSON.stringify(info.field || null);
+  if (fieldKey !== view.fieldKey) {
+    view.fieldKey = fieldKey;
+    if (info.field) renderField(view.fieldBox, info.field);
+    else view.fieldBox.hidden = true;
+  }
 
   // The opponent sent out a different Pokémon: jump back to showing the active one.
   const activeName = info.opponent ? info.opponent.name : null;

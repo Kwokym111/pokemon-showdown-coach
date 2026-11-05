@@ -47,6 +47,21 @@
 //    -> { name, shortDesc } | null
 //    An ability's display name and one-line description. null if unknown in that generation.
 //
+//  getStatusName(status)
+//    -> 'Paralyzed' | 'Burned' | 'Poisoned' | 'Badly poisoned' | 'Asleep' | 'Frozen' | null
+//    A readable name for Showdown's status id ('par', 'tox'...). null for no status.
+//
+//  getFieldEffect(gen, id)
+//    -> { name, shortDesc } | null
+//    A readable name and one-line description for a weather ('RainDance'), terrain
+//    ('Electric Terrain') or screen ('Reflect') id as stored in buildBattle's `field`.
+//
+//  getVolatile(gen, label)
+//    -> { name, shortDesc } | null
+//    A readable name and one-line description for a volatile effect name as stored in
+//    mon.volatiles ('Leech Seed', 'confusion', 'perish3'). Also fine for a side condition
+//    such as 'Stealth Rock' (getFieldEffect does the same job for weather, terrain, screens).
+//
 //  typeMultiplier(gen, attackType, defenderTypes)
 //    -> number | null
 //    How much damage an attack of `attackType` does to a defender with `defenderTypes`
@@ -140,6 +155,49 @@ function getAbility(gen, name) {
   return { name: ab.name, shortDesc: ab.shortDesc || '' };
 }
 
+// Display names only (labels, not game facts): Showdown's status ids and weather ids are
+// not readable on their own. Unknown ids fall back to the id itself.
+const STATUS_NAMES = { par: 'Paralyzed', brn: 'Burned', psn: 'Poisoned', tox: 'Badly poisoned', slp: 'Asleep', frz: 'Frozen' };
+const WEATHER_NAMES = {
+  RainDance: 'Rain', SunnyDay: 'Sun', Sandstorm: 'Sandstorm', Snowscape: 'Snow', Hail: 'Hail',
+  DesolateLand: 'Harsh sunlight', PrimordialSea: 'Heavy rain', DeltaStream: 'Strong winds',
+};
+
+function getStatusName(status) {
+  if (!isName(status)) return null;
+  return STATUS_NAMES[status] || status.toUpperCase();
+}
+
+function getFieldEffect(gen, id) {
+  const g = genData(gen);
+  if (!isName(id)) return null;
+  // Weather, terrain and screens are all started by a move (Rain Dance, Electric Terrain,
+  // Reflect), so that move's one-line description is the description. Weather from an
+  // ability (Drizzle) is the same weather. Special weathers have no move: no description.
+  const mv = g.moves.get(id);
+  return { name: WEATHER_NAMES[id] || id, shortDesc: mv ? mv.shortDesc || '' : '' };
+}
+
+// "perish3" -> "Perish 3", "confusion" -> "Confusion", "Leech Seed" stays as it is.
+function prettyEffect(label) {
+  const spaced = label.replace(/(\D)(\d+)$/, '$1 $2');
+  return spaced.charAt(0).toUpperCase() + spaced.slice(1);
+}
+
+function getVolatile(gen, label) {
+  const g = genData(gen);
+  if (!isName(label)) return null;
+  // Most volatile effects are started by a move (Leech Seed, Substitute, Taunt), and that
+  // move's one-line description is the description. Effects without a move of their own
+  // (confusion) get a name and no description.
+  // Careful: a lowercase label ('confusion', 'perish3') is a condition id, not a move, and
+  // looking it up as a move finds the WRONG thing (the move Confusion, "10% chance to
+  // confuse"). Real move names are capitalised in the log ('Leech Seed', 'Substitute').
+  const isConditionId = label === label.toLowerCase();
+  const mv = isConditionId ? null : g.moves.get(label);
+  return { name: prettyEffect(label), shortDesc: mv ? mv.shortDesc || '' : '' };
+}
+
 function typeMultiplier(gen, attackType, defenderTypes) {
   const g = genData(gen);
   if (!Array.isArray(defenderTypes) || defenderTypes.length === 0) return null;
@@ -173,4 +231,4 @@ function currentTypes(gen, mon) {
   return sp ? [...sp.types] : null;
 }
 
-module.exports = { getSpecies, getMove, getAbility, typeMultiplier, typeChart, currentTypes };
+module.exports = { getSpecies, getMove, getAbility, getStatusName, getFieldEffect, getVolatile, typeMultiplier, typeChart, currentTypes };

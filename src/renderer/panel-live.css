@@ -46,7 +46,16 @@
 .opp-name { font-size: 16px; font-weight: bold; }
 .opp-species { font-size: 11px; color: #9a9aa8; }
 .opp-types { display: flex; flex-wrap: wrap; gap: 4px; margin: 5px 0; }
-.live-status { font-size: 10px; font-weight: bold; padding: 1px 5px; border-radius: 4px; background: #5a4a1e; color: #ffe08a; }
+/* ---- Effects: status, stat stages, field. Neutral pills; colour only shows up/down. ---- */
+.effect-chip { display: inline-block; padding: 1px 8px; border-radius: 9px; font-size: 11px; font-weight: bold; background: #34344a; border: 1px solid #44445a; color: #eee; cursor: default; }
+.effect-status { background: #5a4a1e; border-color: #7a6a2e; color: #ffe08a; }
+.effect-volatile { background: #2c3a4a; border-color: #46607a; color: #cfe6ff; }
+.stage-up { background: #1f3f2c; border-color: #3a7a52; color: #bff0d0; }
+.stage-down { background: #4a2626; border-color: #7a3c3c; color: #ffc4c4; }
+.effect-field { font-weight: normal; }
+.effect-chip:focus-visible { outline: 2px solid #8fd3ff; outline-offset: 1px; }
+.opp-effects { padding-top: 2px; }
+.field-strip { margin-bottom: 6px; padding-bottom: 4px; border-bottom: 1px solid #33333d; }
 
 .faint-badge { font-size: 10px; font-weight: bold; padding: 1px 5px; border-radius: 4px; background: #4a2a2a; color: #ffb3b3; }
 /* filter (not opacity) so it does not fight the fade-in animation on the card. */
