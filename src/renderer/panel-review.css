@@ -12,6 +12,10 @@
 #review .moments { list-style: none; margin: 0; padding: 0; }
 
 #review .moment { padding: 8px 10px; margin-bottom: 8px; background: #313244; border-radius: 8px; }
+/* Clickable: jumps the replay to that turn (does nothing when no replay is open). */
+#review .moment[role="button"] { cursor: pointer; }
+#review .moment[role="button"]:hover { background: #3a3b4d; }
+#review .moment[role="button"]:focus-visible { outline: 2px solid #89b4fa; outline-offset: 1px; }
 #review .moment-head { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
 #review .turn { color: #a6adc8; font-size: 12px; }
 

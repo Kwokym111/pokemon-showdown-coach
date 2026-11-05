@@ -10,4 +10,9 @@ contextBridge.exposeInMainWorld('replayAPI', {
   getLog: () => ipcRenderer.sendSync('replay-get-log'),
   // "Back to Showdown". Fire-and-forget; main only accepts it from this page's own view.
   close: () => ipcRenderer.send('replay-close'),
+  // callback receives a turn number to show. The page (not this preload) calls Showdown's
+  // seekTurn, because the player's objects live in the page's world, which the preload can't see.
+  onGotoTurn: (callback) => {
+    ipcRenderer.on('replay-goto-turn', (_event, turn) => callback(turn));
+  },
 });
