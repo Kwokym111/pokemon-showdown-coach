@@ -1,17 +1,45 @@
 <!doctype html>
-<html>
+<html lang="en">
 <head>
   <meta charset="utf-8">
   <title>Review</title>
-  <!-- Strict CSP: only our own script and stylesheet files (no inline scripts, onclick
-       attributes or style attributes). Extra safety since this card shows names from the server. -->
-  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'">
+  <!-- Strict CSP: only our own script, stylesheet and font files (no inline scripts, onclick
+       attributes or style attributes). The one outside source is Showdown's own image server,
+       for the trainer pictures. Extra safety since this card shows names from the server. -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; font-src 'self'; img-src https://play.pokemonshowdown.com">
   <link rel="stylesheet" href="overlay.css">
 </head>
 <body>
-  <div id="card">
-    <div id="content"><p>Analyzing your game…</p></div>
-    <button id="close">Close</button>
+  <div id="card" class="pending">
+    <h1 id="title"><span>Game</span><span>Over</span></h1>
+    <p id="message">Analyzing your game…</p>
+
+    <div id="summary">
+      <div id="names">
+        <div id="name-me" class="name"></div>
+        <div id="name-opp" class="name name-right"></div>
+      </div>
+      <div id="versus">
+        <div id="sprite-me" class="sprite sprite-left empty"><img alt="" referrerpolicy="no-referrer"><span class="initial"></span></div>
+        <div id="result-box">
+          <div id="score">1 - 0</div>
+          <div id="turns"></div>
+        </div>
+        <div id="sprite-opp" class="sprite sprite-right empty"><img alt="" referrerpolicy="no-referrer"><span class="initial"></span></div>
+      </div>
+
+      <svg id="graph" viewBox="0 0 346 78" aria-label="Who was ahead during the battle"></svg>
+
+      <div id="tiles">
+        <div class="tile"><span class="pill great">Great</span><span class="count" id="count-great">0</span></div>
+        <div class="tile"><span class="pill good">Good</span><span class="count" id="count-good">0</span></div>
+        <div class="tile"><span class="pill mistake">Mistake</span><span class="count" id="count-mistake">0</span></div>
+        <div class="tile"><span class="pill blunder">Blunder</span><span class="count" id="count-blunder">0</span></div>
+      </div>
+      <p id="note"></p>
+    </div>
+
+    <div id="actions"><button id="close" type="button">Close</button></div>
   </div>
   <script src="overlay.js"></script>
 </body>
