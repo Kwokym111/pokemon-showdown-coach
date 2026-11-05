@@ -14,7 +14,7 @@ Showdown Coach only flags what it's sure about. We tested letting an AI judge wh
 
 - **Game Over card.** Pops up when the battle ends: the result, both players, the number of turns, a **"Team HP left, turn by turn"** graph (your team vs the opponent's), and how many Great / Good / Mistake / Blunder moments you had. The graph shows who had more HP left, not who played better. Opponent Pokémon you haven't seen yet count as full HP.
 - **Review in the side panel.** Every key moment with its label and a plain-English explanation. Under each one, **"Your options this turn"** shows the moves you had, whether you could still Terastallize, and your bench, so you can see what you could have done instead. The review stays in the panel after you close the card.
-- **Past games.** *Games → Past games…* opens the review of any battle you've played in the app.
+- **Past games.** *Games → Past games…* opens the review of any battle you've played in the app, together with a replay of it (below).
 
 <!-- GIF: Games menu -> Past games… -> pick a log -> review opens
 ![Opening a past game](media/past-games.gif)
@@ -36,7 +36,19 @@ It shows only what's already been revealed in the battle, plus the type chart. T
 ![The live side panel](media/live-panel.gif)
 -->
 
-<!-- REPLAY VIEWER: add a section here once it's merged. -->
+### Battle replay
+
+When you open a past game, the battle replays where Showdown normally is, with the review still in the side panel next to it.
+
+- **Click a moment in the review** (or Tab to it and press Enter) and the replay jumps to the **start of that turn**, the moment you made the choice the review is talking about.
+- Play, pause and step through turns with the replay's own controls.
+- **← Back to Showdown** (or *Games → Back to Showdown*) returns to Showdown. Showdown is only hidden while you watch, so you stay logged in. If a new battle starts while a replay is open, the app switches back to Showdown by itself.
+
+The replay uses Showdown's own replay player, fed with the battle log the app saved, so it **needs an internet connection**. Offline, you get a short message instead, and the review still works.
+
+<!-- GIF: Past games… -> replay + review side by side -> click a moment -> replay jumps
+![Replay next to the review](media/replay.gif)
+-->
 
 ## How it works
 
@@ -78,13 +90,13 @@ Copy `.env.example` to `.env` and add a key. `.env` is git-ignored.
 | `GEMINI_API_KEY` | Google Gemini (used first). Default models: `gemini-3.5-flash`, then `gemini-3.5-flash-lite` as a fallback. Change them with `GEMINI_MODELS`. |
 | `AI_API_KEY` + `AI_ACCOUNT_ID` | Cloudflare Workers AI (used only when there's no Gemini key). Default model: `@cf/meta/llama-3.1-8b-instruct`. Change it with `AI_MODEL`. |
 
-**No key, or no internet? The review still works.** You get every moment, label and fact, just without the AI's sentences. `.env` is read each time it's needed, so you don't have to restart after editing it.
+**No key, or no internet? The review still works.** You get every moment, label and fact, just without the AI's sentences (and without the replay, which also needs internet). `.env` is read each time it's needed, so you don't have to restart after editing it.
 
 ## Using it
 
 1. Play a battle in the app (Gen 9 Random Battle is what we tested on).
 2. When it ends, the Game Over card pops up. Close it to read the full review in the side panel.
-3. To look at an older game: *Games → Past games…*
+3. To look at an older game: *Games → Past games…* Click a moment to jump the replay to that turn, then *← Back to Showdown* when you're done.
 
 The **Dev** menu has:
 
@@ -153,7 +165,8 @@ Tests use real battle logs from our own accounts in `test-data/`. Opponent names
 ```
 src/
   main/                    Electron main process: does all the work
-    main.js                window, the two views (Showdown + panel), menu
+    main.js                window, the views (Showdown, panel, replay), menu
+    replay-watch.js        retries the replay once if it doesn't start
     capture.js             reads Showdown's WebSocket frames through the debugger
     logs.js                writes <room>.log and <room>.review.json
     live-info.js           feeds the live panel
@@ -172,6 +185,7 @@ src/
   renderer/                pages: they only display what main sends them
     panel.html, panel*.js, panel*.css    side panel (Live, Review, Debug)
     overlay/               the Game Over card
+    replay.html, replay-*.js   the replay page (Showdown's replay player + our Back button)
     *-preload.js           small contextBridge APIs, one per page
     fonts/                 Fira Sans + its licence
 scripts/                   command-line helpers (above)
@@ -185,6 +199,7 @@ test-data/                 real battle logs (opponents anonymised)
 - **Opening DevTools on the Showdown view stops capture** until you restart the app.
 - **Reloading Showdown replays the room's history.** The log file is started fresh at that point (no duplicate lines), and the move lists captured before the reload are put back.
 - Every page runs with `contextIsolation`, `sandbox` and no Node integration. Server text is shown with `textContent`, never `innerHTML`.
+- The replay page loads Showdown's player from `play.pokemonshowdown.com` only (enforced by its Content Security Policy), in its own in-memory session, so it never sees your Showdown login.
 - Showdown popups and external links open in your normal browser.
 
 ## Built with
