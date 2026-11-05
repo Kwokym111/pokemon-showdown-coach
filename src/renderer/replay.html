@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Replay</title>
+  <!-- Only our own files and play.pokemonshowdown.com may load. style-src needs 'unsafe-inline'
+       because the player builds HTML with style="..." attributes. The ad URLs inside
+       Showdown's config.js are blocked by this, which is what we want. -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' https://play.pokemonshowdown.com; style-src 'self' 'unsafe-inline' https://play.pokemonshowdown.com; img-src https://play.pokemonshowdown.com data:; font-src https://play.pokemonshowdown.com data:; media-src https://play.pokemonshowdown.com; connect-src https://play.pokemonshowdown.com">
+  <style>
+    body { margin: 0; font-family: sans-serif; }
+    /* Our own bar, outside the player's wrapper, so it also shows on the offline/failed messages. */
+    #topbar { padding: 6px 10px; background: #2b3a55; }
+    #back { font: inherit; font-size: 14px; padding: 5px 12px; border: 0; border-radius: 4px;
+            background: #fff; color: #1d2b44; cursor: pointer; }
+    #back:hover { background: #dbe4f3; }
+    #offline, #failed { margin: 40px auto; max-width: 480px; padding: 16px; text-align: center; font-size: 16px; }
+  </style>
+</head>
+<body>
+  <div id="topbar"><button id="back" type="button">&larr; Back to Showdown</button></div>
+
+  <div id="offline" hidden>Replay needs an internet connection.</div>
+  <!-- Shown by the main process (replay-watch.js) if the replay still is not running after one retry. -->
+  <div id="failed" hidden>The replay could not start. Close it and try again.</div>
+
+  <!-- The log goes in this tag (filled by replay-page.js). Showdown's player reads it. -->
+  <script type="text/plain" class="battle-log-data"></script>
+
+  <!-- The structure the player fills in. -->
+  <div class="wrapper replay-wrapper">
+    <div class="battle"></div><div class="battle-log"></div>
+    <div class="replay-controls"></div><div class="replay-controls-2"></div>
+  </div>
+
+  <!-- Order matters: replay-embed.js defines the player, then replay-page.js fills in the
+       log and starts it (replacing the player's own start-up, which races in Electron). -->
+  <script src="replay-order.js"></script>
+  <script src="https://play.pokemonshowdown.com/js/replay-embed.js"></script>
+  <script src="replay-page.js"></script>
+</body>
+</html>

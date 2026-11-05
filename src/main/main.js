@@ -4,7 +4,7 @@
 // that are sandboxed away from all of that on purpose. They can only talk to us
 // through the channels we open (here: one IPC message, forwarded by panel-preload.js).
 
-const { app, BaseWindow, WebContentsView, Menu, shell, dialog } = require('electron');
+const { app, BaseWindow, WebContentsView, Menu, shell, dialog, ipcMain } = require('electron');
 const path = require('path');
 const { attachBattleCapture } = require('./capture');
 const { initLogs, getLogDir, readLog, readLogFile, readReviewCache, writeReviewCache, writeLines } = require('./logs');
@@ -18,6 +18,7 @@ const {
 const { addExplanations } = require('./ai');
 const { loadAiConfig, aiIsConfigured } = require('./ai-config');
 const liveInfo = require('./live-info');
+const { watchReplayStart } = require('./replay-watch');
 const { buildBattle } = require('../core/state');
 const { buildReview } = require('../core/review');
 const { applyCachedExplanations } = require('../core/review-cache');
@@ -36,6 +37,9 @@ let reloadingOnPurpose = false; // true only while our "Reload Showdown" menu it
 // battle (rating lines, |deinit|) don't pop it up a second time.
 const finishedRooms = new Set();
 let aiToken = 0; // bumped for every card shown, so only the newest card may receive AI text
+let replayView = null; // the view playing a past game (in the Showdown area), or null
+let replayWatcher = null; // start-check/retry for that view (see replay-watch.js)
+let replayLog = ''; // log text for that view; its page fetches it via 'replay-get-log'
 
 // ---------------------------------------------------------------------------
 // Window + views (R1, R3)
@@ -101,6 +105,9 @@ function createWindow() {
     // A fresh log means a new battle or a replay of one, so the panel must drop what it
     // is showing before the new lines arrive.
     if (fresh) {
+      // A live battle just started (|init|battle): leave any replay so the player never
+      // plays blind. Showdown was only hidden, so this just shows it again.
+      closeReplay();
       sendResetToPanel(room);
       // Same idea for the card: joining the room again (e.g. re-watching a finished
       // battle) replays its |win| line, and that should be allowed to show the card again.
@@ -141,6 +148,9 @@ function layoutViews() {
   const showdownWidth = width - panelWidth;
 
   showdownView.setBounds({ x: 0, y: 0, width: showdownWidth, height });
+  // The replay takes exactly the Showdown area. Showdown keeps its bounds too (it is only
+  // hidden), so switching back needs no extra layout.
+  if (replayView) replayView.setBounds({ x: 0, y: 0, width: showdownWidth, height });
   panelView.setBounds({ x: showdownWidth, y: 0, width: panelWidth, height });
   panelView.setVisible(panelVisible);
 
@@ -259,6 +269,7 @@ function showOverlayForRoom(room) {
 async function openReviewForLogFile({
   title = 'Open review for a log file',
   defaultPath = path.join(__dirname, '..', '..', 'test-data'),
+  withReplay = false, // also play the replay in the main window (Past games only)
 } = {}) {
   const { canceled, filePaths } = await dialog.showOpenDialog(win, {
     title,
@@ -277,7 +288,108 @@ async function openReviewForLogFile({
     return;
   }
   showReviewFromText(room, text, { silentIfSpectated: false });
+  if (withReplay) openReplay(room, text);
 }
+
+// ---------------------------------------------------------------------------
+// Replay view: Showdown's own replay player, fed with our captured log, shown in the
+// Showdown area of the main window. The Showdown view is only HIDDEN meanwhile (never
+// destroyed or reloaded), so its login, socket and the live capture keep running.
+// ---------------------------------------------------------------------------
+
+// Throws nothing: the review must keep working even if the replay cannot open.
+function openReplay(room, text) {
+  try {
+    // One replay at a time: opening another game replaces the old one.
+    removeReplayView();
+
+    const view = new WebContentsView({
+      webPreferences: {
+        contextIsolation: true,
+        nodeIntegration: false,
+        sandbox: true,
+        // No "persist:" prefix = in memory only, and a different partition from
+        // persist:showdown, so the remote player scripts never see the Showdown login cookies.
+        partition: 'replay',
+        preload: path.join(RENDERER_DIR, 'replay-preload.js'),
+      },
+    });
+    replayView = view;
+    replayLog = text;
+
+    const wc = view.webContents;
+    // Links in the battle chat go to the real browser; the page itself never navigates away.
+    wc.setWindowOpenHandler(({ url }) => {
+      if (/^https?:\/\//i.test(url)) shell.openExternal(url);
+      return { action: 'deny' };
+    });
+    wc.on('will-navigate', (e) => e.preventDefault());
+    logLoadProblems(wc, 'replay');
+    // Debug aid: shows CSP blocks and script errors from the player in the terminal.
+    wc.on('console-message', (e) => {
+      // The player also asks for ~20 effect images by a bare relative name (wisp.png...), which
+      // resolve to our local folder and fail; the real replay site 404s on them too. Skip that noise.
+      if (/Loading the image 'file:/.test(e.message)) return;
+      // sourceId/lineNumber say WHICH script broke (e.g. a "$ is not defined" culprit).
+      if (e.level === 'warning' || e.level === 'error') {
+        console.log(`[replay] page ${e.level}: ${e.message} (${e.sourceId}:${e.lineNumber})`);
+      }
+    });
+
+    // Safety net: if the player has not started a few seconds after load, reload once.
+    replayWatcher = watchReplayStart(wc, {
+      onEvent: (type, detail) => console.log(`[replay] start check: ${type}`, JSON.stringify(detail)),
+    });
+
+    // Index 0 = bottom of the stack. Views added later are drawn on top, and the popup card
+    // and the panel must always stay above the replay. Showdown is hidden meanwhile, so being
+    // below it does not matter.
+    win.contentView.addChildView(view, 0);
+    showdownView.setVisible(false);
+    layoutViews(); // gives the replay exactly the Showdown area
+
+    wc.loadFile(path.join(RENDERER_DIR, 'replay.html'));
+  } catch (err) {
+    console.error('[replay] could not open the replay:', err);
+    closeReplay(); // never leave Showdown hidden behind a half-made replay
+  }
+}
+
+// Takes the replay view out of the window and frees its page. Does NOT touch Showdown, so
+// openReplay can use it to swap one replay for another without flashing Showdown in between.
+function removeReplayView() {
+  if (replayWatcher) { replayWatcher.stop(); replayWatcher = null; }
+  const view = replayView;
+  replayView = null;
+  replayLog = '';
+  if (!view) return;
+  try {
+    if (win && !win.isDestroyed()) win.contentView.removeChildView(view);
+    // A removed view keeps its page alive (and playing) until the page is closed explicitly.
+    if (!view.webContents.isDestroyed()) view.webContents.close();
+  } catch (err) {
+    console.error('[replay] could not remove the old replay view:', err);
+  }
+}
+
+// The way back: drop the replay and show Showdown again. Safe to call when no replay is open.
+function closeReplay() {
+  removeReplayView();
+  if (showdownView && !showdownView.webContents.isDestroyed()) showdownView.setVisible(true);
+  layoutViews();
+}
+
+// The replay page asks for its log here. Answer only the view we created, so no other
+// page can read battle logs through this channel.
+ipcMain.on('replay-get-log', (event) => {
+  const ok = replayView && !replayView.webContents.isDestroyed() && event.sender === replayView.webContents;
+  event.returnValue = ok ? replayLog : '';
+});
+
+// The "Back to Showdown" button in the replay page. Same rule: only the replay view may ask.
+ipcMain.on('replay-close', (event) => {
+  if (replayView && !replayView.webContents.isDestroyed() && event.sender === replayView.webContents) closeReplay();
+});
 
 // One IPC message per line. panel-preload.js receives it and hands it to the page.
 function sendToPanel(room, lines) {
@@ -340,8 +452,10 @@ function buildMenu() {
       submenu: [
         {
           label: 'Past games…',
-          click: () => openReviewForLogFile({ title: 'Open a past game', defaultPath: getLogDir() }),
+          click: () => openReviewForLogFile({ title: 'Open a past game', defaultPath: getLogDir(), withReplay: true }),
         },
+        // Does nothing when no replay is open. Wrapped: closeReplay takes no arguments.
+        { label: 'Back to Showdown', click: () => closeReplay() },
       ],
     },
     {
