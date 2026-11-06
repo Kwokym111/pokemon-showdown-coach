@@ -13,8 +13,19 @@ Showdown Coach only flags what it's sure about. We tested letting an AI judge wh
 ### Post-game review (the main feature)
 
 - **Game Over card.** Pops up when the battle ends: the result, both players, the number of turns, a **"Team HP left, turn by turn"** graph (your team vs the opponent's), and how many Great / Good / Mistake / Blunder moments you had. The graph shows who had more HP left, not who played better. Opponent Pokémon you haven't seen yet count as full HP.
+
+![Game Over Card](media/gameover.gif)
+
 - **Review in the side panel.** Every key moment with its label and a plain-English explanation. Under each one, **"Your options this turn"** shows the moves you had, whether you could still Terastallize, and your bench, so you can see what you could have done instead. The review stays in the panel after you close the card.
+
+![Post Game Analysis](media/postgameanalysis.gif)
+
+
 - **Past games.** *Games → Past games…* opens the review of any battle you've played in the app.
+
+![View Past Games](media/viewpastgames.gif)
+![View Highlights](media/viewhighlights.gif)
+
 
 <!-- GIF: Games menu -> Past games… -> pick a log -> review opens
 ![Opening a past game](media/past-games.gif)
@@ -32,9 +43,14 @@ Toggle it with `Ctrl+Shift+K` (`Cmd+Shift+K` on macOS). During a battle it shows
 
 It shows only what's already been revealed in the battle, plus the type chart. That's the same information as Showdown's own tooltips, all in one place. **The side panel never gives advice during the battle.**
 
+![View Highlights](media/livesidepanel.gif)
+
+
 <!-- GIF: press Ctrl+Shift+K mid-battle, hover a revealed move
 ![The live side panel](media/live-panel.gif)
 -->
+
+
 
 <!-- REPLAY VIEWER: add a section here once it's merged. -->
 
