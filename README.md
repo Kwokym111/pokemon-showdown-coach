@@ -4,21 +4,20 @@ A desktop app that wraps [Pokémon Showdown](https://play.pokemonshowdown.com) a
 
 Showdown Coach only flags what it's sure about. We tested letting an AI judge whole games and it invented mistakes. So in Showdown Coach, **the code judges and the AI explains.**
 
-<!-- MAIN GIF: end of a battle -> Game Over card -> review in the side panel
-![The post-game review in action](media/review.gif)
--->
+![The post-game review: Game Over card, then the review in the side panel](media/postgameanalysis.gif)
 
 ## Features
 
 ### Post-game review (the main feature)
 
 - **Game Over card.** Pops up when the battle ends: the result, both players, the number of turns, a **"Team HP left, turn by turn"** graph (your team vs the opponent's), and how many Great / Good / Mistake / Blunder moments you had. The graph shows who had more HP left, not who played better. Opponent Pokémon you haven't seen yet count as full HP.
+
+  ![The Game Over card](media/gameover.gif)
+
 - **Review in the side panel.** Every key moment with its label and a plain-English explanation. Under each one, **"Your options this turn"** shows the moves you had, whether you could still Terastallize, and your bench, so you can see what you could have done instead. The review stays in the panel after you close the card.
 - **Past games.** *Games → Past games…* opens the review of any battle you've played in the app, together with a replay of it (below).
 
-<!-- GIF: Games menu -> Past games… -> pick a log -> review opens
-![Opening a past game](media/past-games.gif)
--->
+![Opening a past game from the Games menu](media/viewpastgames.gif)
 
 ### Live side panel
 
@@ -32,9 +31,7 @@ Toggle it with `Ctrl+Shift+K` (`Cmd+Shift+K` on macOS). During a battle it shows
 
 It shows only what's already been revealed in the battle, plus the type chart. That's the same information as Showdown's own tooltips, all in one place. **The side panel never gives advice during the battle.**
 
-<!-- GIF: press Ctrl+Shift+K mid-battle, hover a revealed move
-![The live side panel](media/live-panel.gif)
--->
+![The live side panel during a battle](media/livesidepanel.gif)
 
 ### Battle replay
 
@@ -46,9 +43,7 @@ When you open a past game, the battle replays where Showdown normally is, with t
 
 The replay uses Showdown's own replay player, fed with the battle log the app saved, so it **needs an internet connection**. Offline, you get a short message instead, and the review still works.
 
-<!-- GIF: Past games… -> replay + review side by side -> click a moment -> replay jumps
-![Replay next to the review](media/replay.gif)
--->
+![The replay next to the review](media/viewhighlights.gif)
 
 ## How it works
 
